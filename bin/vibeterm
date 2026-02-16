@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+// Start the CLI
+require('../dist/vibeterm-cli');

@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  vibeterm-npm-beta:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vibeterm-npm-beta-test
+    environment:
+      - NODE_ENV=development
+      - VIBETERM_NO_AUTH=true
+    volumes:
+      # Mount source code for development
+      - ./src:/app/src
+      - ./public:/app/public
+      # Exclude node_modules
+      - /app/node_modules
+      - /app/node-pty/node_modules
+    ports:
+      - "4021:4020"
+    command: pnpm run dev

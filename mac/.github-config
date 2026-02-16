@@ -1,8 +1,0 @@
-# GitHub Configuration for VibeTunnel
-# This file contains configuration values for the release scripts
-
-# GitHub username/organization for the repository
-GITHUB_USERNAME="amantus-ai"
-
-# Repository name
-GITHUB_REPO="vibetunnel"
