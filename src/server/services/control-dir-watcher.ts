@@ -5,9 +5,18 @@ import { HttpMethod } from '../../shared/types.js';
 import type { PtyManager } from '../pty/index.js';
 import { isShuttingDown } from '../server.js';
 import { createLogger } from '../utils/logger.js';
-import type { HQClient } from './hq-client.js';
 import type { PushNotificationService } from './push-notification-service.js';
-import type { RemoteRegistry } from './remote-registry.js';
+
+// HQ/remote types - these features are not available in the open-source fork
+interface HQClient {
+  getHQUrl(): string;
+  getHQAuth(): string;
+  getName(): string;
+}
+
+interface RemoteRegistry {
+  removeSessionFromRemote(sessionId: string): void;
+}
 
 const logger = createLogger('control-dir-watcher');
 

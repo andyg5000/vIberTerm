@@ -76,6 +76,10 @@ export class SessionView extends LitElement {
   @property({ type: Boolean }) disableFocusManagement = false;
   @property({ type: Boolean }) keyboardCaptureActive = true;
 
+  // Tmux status polling
+  private tmuxStatus = '';
+  private tmuxPollInterval?: ReturnType<typeof setInterval>;
+
   // Managers
   private connectionManager!: ConnectionManager;
   private inputManager!: InputManager;
@@ -443,6 +447,9 @@ export class SessionView extends LitElement {
       this.lifecycleEventManager.cleanup();
     }
 
+    // Stop tmux polling
+    this.stopTmuxPolling();
+
     // Clean up loading animation manager
     this.loadingAnimationManager.cleanup();
   }
@@ -515,6 +522,13 @@ export class SessionView extends LitElement {
       if (this.session && this.uiStateManager.getState().connected && !oldSession) {
         logger.log('Session data now available, initializing terminal');
         this.ensureTerminalInitialized();
+      }
+
+      // Start/stop tmux polling based on session type
+      if (this.getTmuxSessionName()) {
+        this.startTmuxPolling();
+      } else {
+        this.stopTmuxPolling();
       }
     }
 
@@ -639,6 +653,54 @@ export class SessionView extends LitElement {
       logger.warn('failed to check server status:', error);
       // Default to not connected if we can't check
       this.uiStateManager.setMacAppConnected(false);
+    }
+  }
+
+  private getTmuxSessionName(): string | null {
+    const name = this.session?.name;
+    if (!name?.startsWith('tmux:')) return null;
+    // Name format: "tmux:sessionName" or "tmux:sessionName:window"
+    return name.split(':')[1] || null;
+  }
+
+  private startTmuxPolling() {
+    this.stopTmuxPolling();
+    const tmuxName = this.getTmuxSessionName();
+    if (!tmuxName) return;
+
+    // Fetch immediately, then poll
+    this.fetchTmuxStatus(tmuxName);
+    this.tmuxPollInterval = setInterval(() => {
+      this.fetchTmuxStatus(tmuxName);
+    }, 5000);
+  }
+
+  private stopTmuxPolling() {
+    if (this.tmuxPollInterval) {
+      clearInterval(this.tmuxPollInterval);
+      this.tmuxPollInterval = undefined;
+    }
+    this.tmuxStatus = '';
+  }
+
+  private async fetchTmuxStatus(tmuxSessionName: string) {
+    try {
+      const response = await fetch(`/multiplexer/tmux/sessions/${encodeURIComponent(tmuxSessionName)}/windows`, {
+        headers: authClient.getAuthHeader(),
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const windows = data.windows as Array<{ index: number; name: string; active: boolean; panes: number }>;
+      if (!windows?.length) {
+        this.tmuxStatus = '';
+        return;
+      }
+      this.tmuxStatus = windows
+        .map((w) => `${w.index}:${w.name}${w.active ? '*' : ''}${w.panes > 1 ? ` (${w.panes}P)` : ''}`)
+        .join(' | ');
+      this.requestUpdate();
+    } catch {
+      // Silently fail - tmux status is non-critical
     }
   }
 
@@ -1190,24 +1252,16 @@ export class SessionView extends LitElement {
             -webkit-overflow-scrolling: touch;
           }
           
-          /* Desktop: Keep existing terminal behavior */
+          /* Desktop: Fill available grid space */
           .terminal-area vibe-terminal,
           .terminal-area vibe-terminal-binary {
-            height: calc(100% + 50px) !important;
-            margin-bottom: -50px !important;
+            height: 100% !important;
+            margin-bottom: 0 !important;
           }
           
-          /* Desktop: Keep transform for quick keys */
+          /* Desktop: Quick keys area is part of grid, no transform needed */
           .terminal-area[data-quickkeys-visible="true"] {
-            transform: translateY(-110px);
-            transition: transform 0.2s ease-out;
-          }
-          
-          /* Desktop: Add padding when keyboard is visible */
-          .terminal-area[data-quickkeys-visible="true"] vibe-terminal,
-          .terminal-area[data-quickkeys-visible="true"] vibe-terminal-binary {
-            padding-bottom: 70px !important;
-            box-sizing: border-box;
+            transition: none;
           }
           
           .quickkeys-area {
@@ -1338,8 +1392,8 @@ export class SessionView extends LitElement {
             .terminalFontSize=${uiState.terminalFontSize}
             .customWidth=${uiState.customWidth}
             .showWidthSelector=${uiState.showWidthSelector}
-            .keyboardCaptureActive=${uiState.keyboardCaptureActive}
             .isMobile=${uiState.isMobile}
+            .tmuxStatus=${this.tmuxStatus}
             .widthLabel=${this.terminalSettingsManager.getCurrentWidthLabel()}
             .widthTooltip=${this.terminalSettingsManager.getWidthTooltip()}
             .onBack=${() => this.handleBack()}
@@ -1371,15 +1425,6 @@ export class SessionView extends LitElement {
             @open-camera=${() => this.fileOperationsManager.openCamera()}
             @show-image-upload-options=${() => this.fileOperationsManager.selectImage()}
             @toggle-view-mode=${() => this.sessionActionsHandler.handleToggleViewMode()}
-            @capture-toggled=${(e: CustomEvent) => {
-        this.dispatchEvent(
-          new CustomEvent('capture-toggled', {
-            detail: e.detail,
-            bubbles: true,
-            composed: true,
-          })
-        );
-      }}
             .hasGitRepo=${!!this.session?.gitRepoPath}
             .viewMode=${uiState.viewMode}
           >

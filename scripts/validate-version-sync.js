@@ -13,10 +13,10 @@ if (process.env.VT_SKIP_VERSION_SYNC === '1') {
 // Path to the xcconfig file
 const xcconfigPath = path.join(__dirname, '../../mac/VibeTerm/version.xcconfig');
 
-// Check if xcconfig file exists
+// Check if xcconfig file exists (optional - not present in standalone/forked builds)
 if (!fs.existsSync(xcconfigPath)) {
-  console.error(`❌ xcconfig file not found at: ${xcconfigPath}`);
-  process.exit(1);
+  console.log(`ℹ️  xcconfig file not found, skipping version sync validation.`);
+  process.exit(0);
 }
 
 // Read and parse xcconfig file

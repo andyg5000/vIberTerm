@@ -10,7 +10,16 @@ import { EventEmitter } from 'events';
 import { ServerEventType } from '../../shared/types.js';
 import type { PtyManager } from '../pty/pty-manager.js';
 import { createLogger } from '../utils/logger.js';
-import type { SessionMonitorEvent } from '../websocket/control-protocol.js';
+
+export interface SessionMonitorEvent {
+  type: 'session-start' | 'session-exit' | 'command-finished' | 'command-error' | 'bell';
+  sessionId: string;
+  sessionName: string;
+  timestamp: string;
+  exitCode?: number;
+  command?: string;
+  duration?: number;
+}
 
 const logger = createLogger('session-monitor');
 

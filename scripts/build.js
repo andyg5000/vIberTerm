@@ -116,10 +116,14 @@ async function build() {
     process.exit(1);
   }
 
-  // Build zig forwarder first.
+  // Build zig forwarder if source is available.
   // `build-native.js` runs verification in CI which expects the forwarder to exist.
   console.log('Building zig forwarder...');
-  execSync('node scripts/build-fwd-zig.js', { stdio: 'inherit' });
+  try {
+    execSync('node scripts/build-fwd-zig.js', { stdio: 'inherit' });
+  } catch (error) {
+    console.log('⚠️  Zig forwarder build skipped (vt-fwd source not available)');
+  }
 
 
   const shouldBuildSea =

@@ -10,7 +10,7 @@ import type { Session } from '../../../shared/types.js';
 import '../clickable-path.js';
 import '../inline-edit.js';
 import '../notification-status.js';
-import '../keyboard-capture-indicator.js';
+import '../tmux-cheat-sheet.js';
 import '../git-status-badge.js';
 import { authClient } from '../../services/auth-client.js';
 import { isAIAssistantSession, sendAIPrompt } from '../../utils/ai-sessions.js';
@@ -49,7 +49,6 @@ export class SessionHeader extends LitElement {
   @property({ type: Function }) onFontSizeChange?: (size: number) => void;
   @property({ type: Function }) onOpenSettings?: () => void;
   @property({ type: String }) currentTheme = 'system';
-  @property({ type: Boolean }) keyboardCaptureActive = true;
   @property({ type: Boolean }) isMobile = false;
   @property({ type: Boolean }) macAppConnected = false;
   @property({ type: Function }) onTerminateSession?: () => void;
@@ -59,6 +58,7 @@ export class SessionHeader extends LitElement {
   @property({ type: Function }) onToggleViewMode?: () => void;
   @property({ type: Boolean }) chatMode = false;
   @property({ type: Function }) onToggleChatMode?: () => void;
+  @property({ type: String }) tmuxStatus = '';
   @property({ type: Boolean }) mobileHeaderHidden = false;
   @state() private isHovered = false;
   @state() private useCompactMenu = false;
@@ -120,7 +120,7 @@ export class SessionHeader extends LitElement {
     const buttonGap = 8;
 
     // Other elements:
-    const captureIndicatorWidth = 100; // Keyboard capture indicator (increased)
+    const cheatSheetWidth = this.isTmuxSession() ? 60 : 0; // Tmux cheat sheet icon
     const sessionInfoMinWidth = 300; // Minimum space for session name/path (increased)
     const sidebarToggleWidth = this.showSidebarToggle && this.sidebarCollapsed ? 56 : 0; // Including gap
     const padding = 48; // Container padding (increased)
@@ -135,7 +135,7 @@ export class SessionHeader extends LitElement {
       buttonGap * 4;
 
     const requiredWidth =
-      sessionInfoMinWidth + sidebarToggleWidth + captureIndicatorWidth + buttonsWidth + padding;
+      sessionInfoMinWidth + sidebarToggleWidth + cheatSheetWidth + buttonsWidth + padding;
 
     // Switch to compact menu more aggressively (larger buffer)
     const buffer = 150; // Increased buffer to account for sidebar
@@ -145,6 +145,10 @@ export class SessionHeader extends LitElement {
       this.useCompactMenu = shouldUseCompact;
       this.requestUpdate();
     }
+  }
+
+  private isTmuxSession(): boolean {
+    return this.session?.name?.startsWith('tmux:') ?? false;
   }
 
   private getStatusText(): string {
@@ -477,22 +481,19 @@ export class SessionHeader extends LitElement {
                   : ''
               }
             </div>
+            ${this.tmuxStatus ? html`
+              <div class="text-xs opacity-75 mt-0.5 truncate text-text-muted font-mono">
+                ${this.tmuxStatus}
+              </div>
+            ` : ''}
           </div>
         </div>
         <div class="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
-          <keyboard-capture-indicator
-            .active=${this.keyboardCaptureActive}
-            .isMobile=${this.isMobile}
-            @capture-toggled=${(e: CustomEvent) => {
-              this.dispatchEvent(
-                new CustomEvent('capture-toggled', {
-                  detail: e.detail,
-                  bubbles: true,
-                  composed: true,
-                })
-              );
-            }}
-          ></keyboard-capture-indicator>
+          ${this.isTmuxSession() ? html`
+            <tmux-cheat-sheet
+              .isMobile=${this.isMobile}
+            ></tmux-cheat-sheet>
+          ` : ''}
 
           ${
             this.useCompactMenu

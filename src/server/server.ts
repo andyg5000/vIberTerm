@@ -495,8 +495,6 @@ export async function createApp(): Promise<AppInstance> {
     castOutputHub,
     gitStatusHub,
     sessionMonitor,
-    remoteRegistry: null,
-    isHQMode: false,
   });
   logger.debug('Initialized WebSocket v3 hub');
 
@@ -773,8 +771,6 @@ export async function createApp(): Promise<AppInstance> {
     createSessionRoutes({
       ptyManager,
       terminalManager,
-      remoteRegistry: null,
-      isHQMode: false,
     })
   );
   logger.debug('Mounted session routes');
