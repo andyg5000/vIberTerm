@@ -61,13 +61,13 @@ export function createMultiplexerRoutes(options: { ptyManager: PtyManager }): Ro
    */
   router.post('/sessions', async (req, res) => {
     try {
-      const { type, name, options } = req.body;
+      const { type, name, options, workingDir } = req.body;
 
       if (!type || !name) {
         return res.status(400).json({ error: 'Type and name are required' });
       }
 
-      await multiplexerManager.createSession(type, name, options);
+      await multiplexerManager.createSession(type, name, { ...options, workingDir });
       res.json({ success: true, type, name });
     } catch (error) {
       logger.error('Failed to create session', { error });

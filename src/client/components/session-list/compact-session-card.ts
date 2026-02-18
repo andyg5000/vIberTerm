@@ -9,14 +9,18 @@
  * @fires session-delete - When session delete is requested (detail: { sessionId: string })
  * @fires session-cleanup - When exited session cleanup is requested (detail: { sessionId: string })
  */
+import type { PropertyValues } from 'lit';
 import { html, LitElement } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
+import type { TmuxWindow } from '../../../shared/multiplexer-types.js';
 import type { Session } from '../../../shared/types.js';
 import { formatSessionDuration } from '../../../shared/utils/time.js';
+import { apiClient } from '../../services/api-client.js';
 import type { AuthClient } from '../../services/auth-client.js';
 import { sessionActionService } from '../../services/session-action-service.js';
 import { formatPathForDisplay } from '../../utils/path-utils.js';
 import '../inline-edit.js';
+import '../confirm-dialog.js';
 
 @customElement('compact-session-card')
 export class CompactSessionCard extends LitElement {
@@ -30,6 +34,99 @@ export class CompactSessionCard extends LitElement {
   @property({ type: Boolean }) selected = false;
   @property({ type: String }) sessionType: 'running' | 'exited' = 'running';
   @property({ type: Number }) sessionNumber?: number;
+  @state() private showKillConfirm = false;
+  @state() private tmuxWindows: TmuxWindow[] = [];
+  private tmuxPollInterval?: ReturnType<typeof setInterval>;
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (this.isTmuxSession() && this.session.status === 'running') {
+      this.loadTmuxWindows();
+      this.tmuxPollInterval = setInterval(() => this.loadTmuxWindows(), 5000);
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.tmuxPollInterval) {
+      clearInterval(this.tmuxPollInterval);
+    }
+  }
+
+  protected updated(changedProps: PropertyValues) {
+    if (changedProps.has('session')) {
+      const oldSession = changedProps.get('session') as Session | undefined;
+      if (oldSession?.id !== this.session?.id) {
+        // Session changed, reset windows and restart polling
+        this.tmuxWindows = [];
+        if (this.tmuxPollInterval) {
+          clearInterval(this.tmuxPollInterval);
+          this.tmuxPollInterval = undefined;
+        }
+        if (this.isTmuxSession() && this.session.status === 'running') {
+          this.loadTmuxWindows();
+          this.tmuxPollInterval = setInterval(() => this.loadTmuxWindows(), 5000);
+        }
+      }
+    }
+  }
+
+  private getTmuxName(): string | null {
+    const name = this.session?.name;
+    if (!name?.startsWith('tmux:')) return null;
+    const tmuxPart = name.slice(5).trim();
+    return tmuxPart.split(':')[0] || null;
+  }
+
+  private async loadTmuxWindows() {
+    const tmuxName = this.getTmuxName();
+    if (!tmuxName) return;
+    try {
+      const response = await apiClient.get<{ windows: TmuxWindow[] }>(
+        `/multiplexer/tmux/sessions/${encodeURIComponent(tmuxName)}/windows`
+      );
+      this.tmuxWindows = response.windows || [];
+    } catch {
+      // Silently fail — windows are non-critical
+    }
+  }
+
+  private async handleWindowClick(e: Event, windowIndex: number) {
+    e.stopPropagation();
+    const tmuxName = this.getTmuxName();
+    if (!tmuxName) return;
+
+    try {
+      const response = await apiClient.post<{
+        success: boolean;
+        sessionId?: string;
+      }>('/multiplexer/attach', {
+        type: 'tmux',
+        sessionName: tmuxName,
+        windowIndex,
+        cols: 120,
+        rows: 30,
+        titleMode: 'static',
+      });
+
+      if (response.success && response.sessionId) {
+        // Optimistically update active window
+        this.tmuxWindows = this.tmuxWindows.map((w) => ({
+          ...w,
+          active: w.index === windowIndex,
+        }));
+        this.dispatchEvent(
+          new CustomEvent('session-select', {
+            detail: { ...this.session, id: response.sessionId },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Failed to switch tmux window:', error);
+    }
+  }
 
   private handleClick() {
     this.dispatchEvent(
@@ -54,6 +151,15 @@ export class CompactSessionCard extends LitElement {
   private async handleDelete(e: Event) {
     e.stopPropagation();
 
+    if (this.session.status === 'running') {
+      this.showKillConfirm = true;
+      return;
+    }
+
+    await this.performDelete();
+  }
+
+  private async performDelete() {
     // Use sessionActionService to perform the actual kill/cleanup
     await sessionActionService.deleteSession(this.session, {
       authClient: this.authClient,
@@ -121,10 +227,19 @@ export class CompactSessionCard extends LitElement {
     return html`${changes}`;
   }
 
+  private isTmuxSession(): boolean {
+    const cmd = this.session.command;
+    return Array.isArray(cmd) && cmd[0] === 'tmux' && cmd[1] === 'attach-session';
+  }
+
   private renderSessionName() {
     const displayName =
       this.session.name ||
       (Array.isArray(this.session.command) ? this.session.command.join(' ') : this.session.command);
+
+    const tmuxBadge = this.isTmuxSession()
+      ? html`<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 ml-1.5 align-middle">tmux</span>`
+      : '';
 
     // Only show inline-edit for running sessions
     if (this.sessionType !== 'exited') {
@@ -133,12 +248,12 @@ export class CompactSessionCard extends LitElement {
           .value=${displayName}
           .placeholder=${Array.isArray(this.session.command) ? this.session.command.join(' ') : this.session.command}
           .onSave=${(newName: string) => this.handleRename(newName)}
-        ></inline-edit>
+        ></inline-edit>${tmuxBadge}
       `;
     }
 
     // For exited sessions, just show the name
-    return html`<span title="${displayName}">${displayName}</span>`;
+    return html`<span title="${displayName}">${displayName}</span>${tmuxBadge}`;
   }
 
   private renderDeleteButton() {
@@ -238,7 +353,23 @@ export class CompactSessionCard extends LitElement {
             }
           </div>
           
-          <!-- Row 3: (reserved) -->
+          <!-- Row 3: Tmux window tabs -->
+          ${this.tmuxWindows.length > 0 ? html`
+            <div class="flex flex-wrap gap-1 mt-1.5">
+              ${this.tmuxWindows.map(
+                (win) => html`
+                  <button
+                    class="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-all
+                      ${win.active
+                        ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
+                        : 'bg-bg-tertiary border-border text-text-muted hover:bg-bg-elevated hover:text-text hover:border-border-light'}"
+                    title="${win.name}"
+                    @click=${(e: Event) => this.handleWindowClick(e, win.index)}
+                  >${win.index}:${win.name}</button>
+                `
+              )}
+            </div>
+          ` : ''}
         </div>
         
         <!-- Right side: duration and close button -->
@@ -265,7 +396,18 @@ export class CompactSessionCard extends LitElement {
               `
           }
         </div>
+
       </div>
+
+      <confirm-dialog
+        .visible=${this.showKillConfirm}
+        .dialogTitle=${'Kill Session'}
+        .message=${'This session is still running. Are you sure you want to kill it?'}
+        .confirmLabel=${'Kill'}
+        .danger=${true}
+        @confirm=${async () => { this.showKillConfirm = false; await this.performDelete(); }}
+        @cancel=${() => { this.showKillConfirm = false; }}
+      ></confirm-dialog>
     `;
   }
 }

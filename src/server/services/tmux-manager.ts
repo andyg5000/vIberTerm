@@ -4,6 +4,7 @@ import type { TmuxPane, TmuxSession, TmuxWindow } from '../../shared/tmux-types.
 import { type SessionCreateOptions, TitleMode } from '../../shared/types.js';
 import type { PtyManager } from '../pty/pty-manager.js';
 import { createLogger } from '../utils/logger.js';
+import { resolveAbsolutePath } from '../utils/path-utils.js';
 
 const execFileAsync = promisify(execFile);
 const logger = createLogger('TmuxManager');
@@ -190,11 +191,16 @@ export class TmuxManager {
   /**
    * Create a new tmux session
    */
-  async createSession(name: string, command?: string[]): Promise<void> {
+  async createSession(name: string, command?: string[], workingDir?: string): Promise<void> {
     this.validateSessionName(name);
 
     try {
       const args = ['new-session', '-d', '-s', name];
+
+      // Set the starting directory if provided
+      if (workingDir) {
+        args.push('-c', resolveAbsolutePath(workingDir));
+      }
 
       // If command is provided, add it as separate arguments
       if (command && command.length > 0) {
@@ -237,10 +243,37 @@ export class TmuxManager {
     const attachTarget = windowIndex !== undefined ? `${sessionName}:${windowIndex}` : sessionName;
     const tmuxCommand = ['tmux', 'attach-session', '-t', attachTarget];
 
+    // Check for existing VibeTerm session already attached to this tmux session
+    const existingSessions = this.ptyManager.listSessions();
+    const existingSession = existingSessions.find(
+      (s) =>
+        s.status === 'running' &&
+        s.command[0] === 'tmux' &&
+        s.command[1] === 'attach-session' &&
+        s.command[2] === '-t' &&
+        s.command[3]?.split(':')[0] === sessionName
+    );
+    if (existingSession) {
+      // If a specific window was requested, switch to it
+      if (windowIndex !== undefined) {
+        try {
+          await execFileAsync('tmux', ['select-window', '-t', `${sessionName}:${windowIndex}`]);
+          logger.info('Switched tmux window', { sessionName, windowIndex });
+        } catch (error) {
+          logger.warn('Failed to switch tmux window', { sessionName, windowIndex, error });
+        }
+      }
+      logger.info('Reusing existing VibeTerm session for tmux target', {
+        target: attachTarget,
+        sessionId: existingSession.id,
+      });
+      return existingSession.id;
+    }
+
     // Create a new VibeTerm session that runs tmux attach
     const sessionOptions: SessionCreateOptions = {
       name: `tmux: ${target}`,
-      workingDir: options?.workingDir || process.env.HOME || '/',
+      workingDir: resolveAbsolutePath(options?.workingDir || process.env.HOME || '/'),
       cols: options?.cols || 80,
       rows: options?.rows || 24,
       titleMode: options?.titleMode || TitleMode.STATIC,
@@ -248,6 +281,22 @@ export class TmuxManager {
 
     const session = await this.ptyManager.createSession(tmuxCommand, sessionOptions);
     return session.sessionId;
+  }
+
+  /**
+   * Rename a tmux session
+   */
+  async renameSession(oldName: string, newName: string): Promise<void> {
+    this.validateSessionName(oldName);
+    this.validateSessionName(newName);
+
+    try {
+      await execFileAsync('tmux', ['rename-session', '-t', oldName, newName]);
+      logger.info('Renamed tmux session', { oldName, newName });
+    } catch (error) {
+      logger.error('Failed to rename tmux session', { oldName, newName, error });
+      throw error;
+    }
   }
 
   /**

@@ -10,6 +10,8 @@ import type {
   TmuxWindow,
 } from '../../shared/multiplexer-types.js';
 import { apiClient } from '../services/api-client.js';
+import { ServerConfigService } from '../services/server-config-service.js';
+import './confirm-dialog.js';
 import './modal-wrapper.js';
 
 @customElement('multiplexer-modal')
@@ -45,6 +47,16 @@ export class MultiplexerModal extends LitElement {
 
   @state()
   private error: string | null = null;
+
+  @state()
+  private pendingKill: {
+    type: 'session' | 'window' | 'pane';
+    multiplexerType: MultiplexerType;
+    sessionName: string;
+    windowIndex?: number;
+    paneId?: string;
+    message: string;
+  } | null = null;
 
   async connectedCallback() {
     super.connectedCallback();
@@ -208,11 +220,16 @@ export class MultiplexerModal extends LitElement {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       const sessionName = `session-${timestamp}`;
 
+      // Get repository base path for the working directory
+      const serverConfigService = new ServerConfigService();
+      const workingDir = await serverConfigService.getRepositoryBasePath();
+
       if (this.activeTab === 'tmux' || this.activeTab === 'screen') {
         // For tmux and screen, create the session first
         const createResponse = await apiClient.post<{ success: boolean }>('/multiplexer/sessions', {
           type: this.activeTab,
           name: sessionName,
+          workingDir,
         });
 
         if (!createResponse.success) {
@@ -232,6 +249,7 @@ export class MultiplexerModal extends LitElement {
         cols: window.innerWidth > 768 ? 120 : 80,
         rows: window.innerHeight > 600 ? 30 : 24,
         titleMode: 'static',
+        workingDir,
         metadata: {
           source: 'multiplexer-modal-new',
         },
@@ -254,73 +272,77 @@ export class MultiplexerModal extends LitElement {
     }
   }
 
-  private async killSession(type: MultiplexerType, sessionName: string) {
-    if (
-      !confirm(
-        `Are you sure you want to kill session "${sessionName}"? This will terminate all windows and panes.`
-      )
-    ) {
-      return;
-    }
+  private killSession(type: MultiplexerType, sessionName: string) {
+    this.pendingKill = {
+      type: 'session',
+      multiplexerType: type,
+      sessionName,
+      message: `Are you sure you want to kill session "${sessionName}"? This will terminate all windows and panes.`,
+    };
+  }
+
+  private killWindow(sessionName: string, windowIndex: number) {
+    this.pendingKill = {
+      type: 'window',
+      multiplexerType: 'tmux',
+      sessionName,
+      windowIndex,
+      message: `Are you sure you want to kill window ${windowIndex}? This will terminate all panes in this window.`,
+    };
+  }
+
+  private killPane(sessionName: string, paneId: string) {
+    this.pendingKill = {
+      type: 'pane',
+      multiplexerType: 'tmux',
+      sessionName,
+      paneId,
+      message: `Are you sure you want to kill this pane?`,
+    };
+  }
+
+  private async confirmKill() {
+    const kill = this.pendingKill;
+    if (!kill) return;
+    this.pendingKill = null;
 
     try {
-      const response = await apiClient.delete<{ success: boolean }>(
-        `/multiplexer/${type}/sessions/${sessionName}`
-      );
-      if (response.success) {
-        await this.loadMultiplexerStatus();
+      if (kill.type === 'session') {
+        const response = await apiClient.delete<{ success: boolean }>(
+          `/multiplexer/${kill.multiplexerType}/sessions/${kill.sessionName}`
+        );
+        if (response.success) {
+          await this.loadMultiplexerStatus();
+        }
+      } else if (kill.type === 'window' && kill.windowIndex !== undefined) {
+        const response = await apiClient.delete<{ success: boolean }>(
+          `/multiplexer/tmux/sessions/${kill.sessionName}/windows/${kill.windowIndex}`
+        );
+        if (response.success) {
+          await this.loadMultiplexerStatus();
+        }
+      } else if (kill.type === 'pane' && kill.paneId) {
+        const response = await apiClient.delete<{ success: boolean }>(
+          `/multiplexer/tmux/sessions/${kill.sessionName}/panes/${kill.paneId}`
+        );
+        if (response.success) {
+          this.panes.clear();
+          this.expandedWindows.forEach((key) => {
+            const [session, windowStr] = key.split(':');
+            if (session === kill.sessionName) {
+              this.loadPanesForWindow(session, Number.parseInt(windowStr, 10));
+            }
+          });
+        }
       }
     } catch (error) {
-      console.error(`Failed to kill ${type} session:`, error);
-      this.error = `Failed to kill ${type} session`;
+      console.error(`Failed to kill ${kill.type}:`, error);
+      this.error = `Failed to kill ${kill.type}`;
     }
   }
 
-  private async killWindow(sessionName: string, windowIndex: number) {
-    if (
-      !confirm(
-        `Are you sure you want to kill window ${windowIndex}? This will terminate all panes in this window.`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const response = await apiClient.delete<{ success: boolean }>(
-        `/multiplexer/tmux/sessions/${sessionName}/windows/${windowIndex}`
-      );
-      if (response.success) {
-        await this.loadMultiplexerStatus();
-      }
-    } catch (error) {
-      console.error(`Failed to kill window:`, error);
-      this.error = `Failed to kill window`;
-    }
-  }
-
-  private async killPane(sessionName: string, paneId: string) {
-    if (!confirm(`Are you sure you want to kill this pane?`)) {
-      return;
-    }
-
-    try {
-      const response = await apiClient.delete<{ success: boolean }>(
-        `/multiplexer/tmux/sessions/${sessionName}/panes/${paneId}`
-      );
-      if (response.success) {
-        // Reload panes for the affected window
-        this.panes.clear();
-        this.expandedWindows.forEach((key) => {
-          const [session, windowStr] = key.split(':');
-          if (session === sessionName) {
-            this.loadPanesForWindow(session, Number.parseInt(windowStr, 10));
-          }
-        });
-      }
-    } catch (error) {
-      console.error(`Failed to kill pane:`, error);
-      this.error = `Failed to kill pane`;
-    }
+  private cancelKill() {
+    this.pendingKill = null;
   }
 
   private handleClose() {
@@ -341,7 +363,7 @@ export class MultiplexerModal extends LitElement {
       <div class="fixed inset-0 z-50 ${this.open ? 'flex' : 'hidden'} items-center justify-center p-4">
         <modal-wrapper .open=${this.open} @close=${this.handleClose}>
           <div class="w-full max-w-2xl max-h-[80vh] flex flex-col bg-bg-secondary border border-border rounded-xl p-6 shadow-xl">
-            <h2 class="m-0 mb-4 text-xl font-semibold text-text">Terminal Sessions</h2>
+            <h2 class="m-0 mb-4 text-xl font-semibold text-text">Tmux Sessions</h2>
 
             ${
               status &&
@@ -525,15 +547,11 @@ export class MultiplexerModal extends LitElement {
                                               class="p-2 mb-1 rounded cursor-pointer flex items-center justify-between transition-colors hover:bg-bg-secondary ${window.active ? 'bg-bg-tertiary font-medium' : ''}"
                                               @click=${(e: Event) => {
                                                 e.stopPropagation();
-                                                if (window.panes > 1) {
-                                                  this.toggleWindow(session.name, window.index);
-                                                } else {
-                                                  this.attachToSession({
-                                                    type: session.type,
-                                                    session: session.name,
-                                                    window: window.index,
-                                                  });
-                                                }
+                                                this.attachToSession({
+                                                  type: session.type,
+                                                  session: session.name,
+                                                  window: window.index,
+                                                });
                                               }}
                                             >
                                               <div class="flex items-center gap-2">
@@ -553,7 +571,7 @@ export class MultiplexerModal extends LitElement {
                                                 </button>
                                                 <span class="text-xs text-text-dim">
                                                   ${window.panes} pane${window.panes !== 1 ? 's' : ''}
-                                                  ${window.panes > 1 ? html`<span class="ml-2 transition-transform ${isWindowExpanded ? 'rotate-90' : ''}">▶</span>` : ''}
+                                                  ${window.panes > 1 ? html`<span class="ml-2 cursor-default transition-transform ${isWindowExpanded ? 'rotate-90' : ''}" @click=${(e: Event) => { e.stopPropagation(); this.toggleWindow(session.name, window.index); }}>▶</span>` : ''}
                                                 </span>
                                               </div>
                                             </div>
@@ -568,16 +586,7 @@ export class MultiplexerModal extends LitElement {
                                                         `${session.name}:${window.index}.${pane.index}`,
                                                       (pane) => html`
                                                         <div
-                                                          class="px-2 py-1.5 mb-0.5 rounded cursor-pointer flex items-center justify-between text-sm transition-colors hover:bg-bg-secondary ${pane.active ? 'bg-bg-tertiary font-medium' : ''}"
-                                                          @click=${(e: Event) => {
-                                                            e.stopPropagation();
-                                                            this.attachToSession({
-                                                              type: session.type,
-                                                              session: session.name,
-                                                              window: window.index,
-                                                              pane: pane.index,
-                                                            });
-                                                          }}
+                                                          class="px-2 py-1.5 mb-0.5 rounded flex items-center justify-between text-sm ${pane.active ? 'bg-bg-tertiary font-medium' : ''}"
                                                         >
                                                           <div class="flex items-center gap-2">
                                                             <span class="font-mono text-xs text-text-muted">%${pane.index}</span>
@@ -634,6 +643,16 @@ export class MultiplexerModal extends LitElement {
                   : null
               }
             </div>
+
+            <confirm-dialog
+              .visible=${this.pendingKill !== null}
+              .dialogTitle=${'Kill ' + (this.pendingKill?.type || 'session')}
+              .message=${this.pendingKill?.message || ''}
+              .confirmLabel=${'Kill'}
+              .danger=${true}
+              @confirm=${() => this.confirmKill()}
+              @cancel=${() => this.cancelKill()}
+            ></confirm-dialog>
           </div>
         </modal-wrapper>
       </div>

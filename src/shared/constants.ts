@@ -3,7 +3,7 @@
  */
 
 // Default paths
-export const DEFAULT_REPOSITORY_BASE_PATH = '~/Documents';
+export const DEFAULT_REPOSITORY_BASE_PATH = '~/';
 
 // Server configuration
 export const DEFAULT_SERVER_PORT = 4020;

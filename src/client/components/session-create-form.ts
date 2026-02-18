@@ -1027,7 +1027,7 @@ export class SessionCreateForm extends LitElement {
           data-testid="session-create-modal"
         >
           <div class="p-3 sm:p-4 mb-1 sm:mb-2 border-b border-border/50 relative bg-gradient-to-r from-bg-secondary to-bg-tertiary flex-shrink-0 rounded-t-xl flex items-center justify-between">
-            <h2 id="modal-title" class="text-primary text-base sm:text-lg lg:text-xl font-bold">New Session</h2>
+            <h2 id="modal-title" class="text-primary text-base sm:text-lg lg:text-xl font-bold">New Shell (no tmux)</h2>
             <button
               class="text-text-muted hover:text-text transition-all duration-200 p-1.5 sm:p-2 hover:bg-bg-elevated/30 rounded-lg"
               @click=${this.handleCancel}

@@ -6,6 +6,7 @@ import { cellsToText } from '../../shared/terminal-text-formatter.js';
 import type { ServerStatus } from '../../shared/types.js';
 import { PtyError, type PtyManager } from '../pty/index.js';
 import type { TerminalManager } from '../services/terminal-manager.js';
+import { TmuxManager } from '../services/tmux-manager.js';
 import { detectGitInfo } from '../utils/git-info.js';
 import { getDetailedGitStatus } from '../utils/git-status.js';
 import { createLogger } from '../utils/logger.js';
@@ -474,6 +475,29 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
       logger.debug(`[PATCH] Calling ptyManager.updateSessionName(${sessionId}, ${name})`);
       const uniqueName = ptyManager.updateSessionName(sessionId, name);
       logger.log(chalk.green(`[PATCH] Session ${sessionId} name updated to: ${uniqueName}`));
+
+      // If this is a tmux session, also rename the underlying tmux session
+      if (
+        session.command[0] === 'tmux' &&
+        session.command[1] === 'attach-session' &&
+        session.command[2] === '-t'
+      ) {
+        const tmuxTarget = session.command[3];
+        // Extract just the session name (before any :window.pane suffix)
+        const tmuxSessionName = tmuxTarget.split(':')[0];
+        try {
+          const tmuxManager = TmuxManager.getInstance(ptyManager);
+          await tmuxManager.renameSession(tmuxSessionName, name.trim());
+          logger.log(
+            chalk.green(`[PATCH] Tmux session "${tmuxSessionName}" renamed to "${name.trim()}"`)
+          );
+          // Update the VibeTerm session name to reflect new tmux target
+          ptyManager.updateSessionName(sessionId, `tmux: ${name.trim()}`);
+        } catch (tmuxError) {
+          // Non-fatal: VibeTerm rename succeeded, tmux rename failed
+          logger.warn(`[PATCH] Failed to rename tmux session:`, tmuxError);
+        }
+      }
 
       res.json({ success: true, name: uniqueName });
     } catch (error) {

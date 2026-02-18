@@ -28,6 +28,7 @@ import './inline-edit.js';
 import './session-list/compact-session-card.js';
 import './session-list/repository-header.js';
 import './clickable-path.js';
+import './confirm-dialog.js';
 import './git-status-badge.js';
 import { getBaseRepoName } from '../../shared/utils/git.js';
 import { Z_INDEX } from '../utils/constants.js';
@@ -58,6 +59,7 @@ export class SessionList extends LitElement {
   @state() private repoWorktrees = new Map<string, Worktree[]>();
   @state() private loadingWorktrees = new Set<string>();
   @state() private showWorktreeDropdown = new Map<string, boolean>();
+  @state() private showKillAllConfirm = false;
 
   connectedCallback() {
     super.connectedCallback();
@@ -117,9 +119,65 @@ export class SessionList extends LitElement {
   };
 
   private getVisibleSessions() {
-    const running = this.sessions.filter((s) => s.status === 'running' || s.status === 'starting');
-    const exited = this.sessions.filter((s) => s.status === 'exited');
+    const running = this.deduplicateTmuxSessions(
+      this.sessions.filter((s) => s.status === 'running' || s.status === 'starting')
+    );
+    const exited = this.deduplicateTmuxSessions(
+      this.sessions.filter((s) => s.status === 'exited')
+    );
     return this.hideExited ? running : running.concat(exited);
+  }
+
+  /**
+   * Extract the tmux session name from a session's name or command.
+   * Returns null if the session is not a tmux session.
+   */
+  private getTmuxGroupKey(session: Session): string | null {
+    // First try from session name (most reliable after renames)
+    if (session.name?.startsWith('tmux:')) {
+      const tmuxPart = session.name.slice(5).trim();
+      // Get session name before any :window.pane suffix
+      return tmuxPart.split(':')[0] || null;
+    }
+    // Fallback to command array
+    const cmd = session.command;
+    if (Array.isArray(cmd) && cmd[0] === 'tmux' && cmd[1] === 'attach-session' && cmd[2] === '-t') {
+      return cmd[3]?.split(':')[0] || null;
+    }
+    return null;
+  }
+
+  /**
+   * Deduplicate tmux sessions: keep only one VibeTerm session per tmux session.
+   * For each tmux session name, keep the session-level attach (no window suffix)
+   * or the most recently started one. Non-tmux sessions pass through unchanged.
+   */
+  private deduplicateTmuxSessions(sessions: Session[]): Session[] {
+    const tmuxGroups = new Map<string, Session[]>();
+    const result: Session[] = [];
+
+    for (const session of sessions) {
+      const tmuxName = this.getTmuxGroupKey(session);
+      if (tmuxName) {
+        if (!tmuxGroups.has(tmuxName)) {
+          tmuxGroups.set(tmuxName, []);
+        }
+        tmuxGroups.get(tmuxName)!.push(session);
+      } else {
+        result.push(session);
+      }
+    }
+
+    // For each tmux session group, pick the best representative:
+    // prefer session-level attach, then most recently started
+    for (const [, group] of tmuxGroups) {
+      group.sort((a, b) => (b.startedAt || '').localeCompare(a.startedAt || ''));
+      // Prefer session-level attach (target has no ':' — just the session name)
+      const sessionLevel = group.find((s) => !s.command[3]?.includes(':'));
+      result.push(sessionLevel || group[0]);
+    }
+
+    return result;
   }
 
   private getGridColumns(): number {
@@ -741,11 +799,13 @@ export class SessionList extends LitElement {
   }
 
   render() {
-    // Group sessions by status
-    const runningSessions = this.sessions.filter(
-      (session) => session.status === 'running' || session.status === 'starting'
+    // Group sessions by status, deduplicating tmux sessions
+    const runningSessions = this.deduplicateTmuxSessions(
+      this.sessions.filter((session) => session.status === 'running' || session.status === 'starting')
     );
-    const exitedSessions = this.sessions.filter((session) => session.status === 'exited');
+    const exitedSessions = this.deduplicateTmuxSessions(
+      this.sessions.filter((session) => session.status === 'exited')
+    );
 
     const hasRunningSessions = runningSessions.length > 0;
     const hasExitedSessions = exitedSessions.length > 0;
@@ -983,8 +1043,12 @@ export class SessionList extends LitElement {
   }
 
   private renderExitedControls() {
-    const exitedSessions = this.sessions.filter((session) => session.status === 'exited');
-    const runningSessions = this.sessions.filter((session) => session.status === 'running');
+    const exitedSessions = this.deduplicateTmuxSessions(
+      this.sessions.filter((session) => session.status === 'exited')
+    );
+    const runningSessions = this.deduplicateTmuxSessions(
+      this.sessions.filter((session) => session.status === 'running')
+    );
 
     // If no sessions at all, don't show controls
     if (this.sessions.length === 0) return '';
@@ -1072,11 +1136,20 @@ export class SessionList extends LitElement {
               <button
                 class="font-mono text-xs px-3 py-1.5 rounded-md border transition-all duration-200 border-status-error bg-status-error/10 text-status-error hover:bg-status-error/20 hover:shadow-glow-error-sm active:scale-95"
                 id="kill-all-button"
-                @click=${() => this.dispatchEvent(new CustomEvent('kill-all-sessions'))}
+                @click=${() => { this.showKillAllConfirm = true; }}
                 data-testid="kill-all-button"
               >
                 Kill All
               </button>
+              <confirm-dialog
+                .visible=${this.showKillAllConfirm}
+                .dialogTitle=${'Kill All Sessions'}
+                .message=${`Kill all ${runningSessions.length} running session${runningSessions.length === 1 ? '' : 's'}? This cannot be undone.`}
+                .confirmLabel=${'Kill All'}
+                .danger=${true}
+                @confirm=${() => { this.showKillAllConfirm = false; this.dispatchEvent(new CustomEvent('kill-all-sessions')); }}
+                @cancel=${() => { this.showKillAllConfirm = false; }}
+              ></confirm-dialog>
             `
                 : ''
             }

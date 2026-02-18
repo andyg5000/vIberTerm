@@ -124,10 +124,10 @@ export class MultiplexerManager {
   async createSession(
     type: MultiplexerType,
     name: string,
-    options?: { command?: string[]; layout?: string }
+    options?: { command?: string[]; layout?: string; workingDir?: string }
   ): Promise<void> {
     if (type === 'tmux') {
-      await this.tmuxManager.createSession(name, options?.command);
+      await this.tmuxManager.createSession(name, options?.command, options?.workingDir);
     } else if (type === 'zellij') {
       await this.zellijManager.createSession(name, options?.layout);
     } else if (type === 'screen') {

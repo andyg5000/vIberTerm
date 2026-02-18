@@ -659,8 +659,9 @@ export class SessionView extends LitElement {
   private getTmuxSessionName(): string | null {
     const name = this.session?.name;
     if (!name?.startsWith('tmux:')) return null;
-    // Name format: "tmux:sessionName" or "tmux:sessionName:window"
-    return name.split(':')[1] || null;
+    // Name format: "tmux: sessionName" or "tmux: sessionName:window"
+    const tmuxPart = name.slice(5).trim(); // strip "tmux:" prefix and whitespace
+    return tmuxPart.split(':')[0] || null; // session name before any :window.pane
   }
 
   private startTmuxPolling() {

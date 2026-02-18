@@ -259,18 +259,8 @@ export class SessionHeader extends LitElement {
             </svg>
           </div>
 
-          <!-- Right side: chat toggle + compact menu -->
+          <!-- Right side: compact menu -->
           <div class="flex items-center gap-1 flex-shrink-0" @click=${(e: Event) => e.stopPropagation()}>
-            <button
-              class="p-1.5 rounded-md transition-all ${this.chatMode ? 'bg-primary text-white' : 'text-primary'}"
-              @click=${() => this.onToggleChatMode?.()}
-              aria-label="${this.chatMode ? 'Terminal Mode' : 'Chat Mode'}"
-              data-testid="chat-mode-toggle-mobile"
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2.678 11.894a1 1 0 01.287.801 10.97 10.97 0 01-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 01.71-.074A8.06 8.06 0 008 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 01-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 00.244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 01-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
-              </svg>
-            </button>
             <compact-menu
               .session=${this.session}
               .widthLabel=${this.widthLabel}
@@ -383,11 +373,12 @@ export class SessionHeader extends LitElement {
                 <button
                   class="bg-bg-tertiary border border-border text-primary rounded-md p-2 transition-all duration-200 hover:bg-surface-hover hover:border-primary flex-shrink-0"
                   @click=${() => this.onCreateSession?.()}
-                  title="Create New Session (⌘K)"
+                  title="New Shell (no tmux) (⌘K)"
                   data-testid="create-session-button"
                 >
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
                   </svg>
                 </button>
               `
@@ -499,16 +490,6 @@ export class SessionHeader extends LitElement {
             this.useCompactMenu
               ? html`
               <div class="flex items-center gap-2 flex-shrink-0">
-                <button
-                  class="bg-bg-tertiary border border-border rounded-md p-2 text-primary transition-all duration-200 hover:bg-surface-hover hover:border-primary flex-shrink-0 ${this.chatMode ? 'bg-primary text-white border-primary' : ''}"
-                  @click=${() => this.onToggleChatMode?.()}
-                  title="${this.chatMode ? 'Switch to Terminal Mode' : 'Switch to Chat Mode'}"
-                  data-testid="chat-mode-toggle-button-compact"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M2.678 11.894a1 1 0 01.287.801 10.97 10.97 0 01-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 01.71-.074A8.06 8.06 0 008 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 01-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 00.244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 01-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
-                  </svg>
-                </button>
                 <compact-menu
                   .session=${this.session}
                   .widthLabel=${this.widthLabel}
@@ -553,18 +534,6 @@ export class SessionHeader extends LitElement {
                     `
                     : ''
                 }
-
-                <!-- Chat mode toggle button -->
-                <button
-                  class="bg-bg-tertiary border border-border rounded-md p-2 text-primary transition-all duration-200 hover:bg-surface-hover hover:border-primary flex-shrink-0 ${this.chatMode ? 'bg-primary text-white border-primary' : ''}"
-                  @click=${() => this.onToggleChatMode?.()}
-                  title="${this.chatMode ? 'Switch to Terminal Mode' : 'Switch to Chat Mode'}"
-                  data-testid="chat-mode-toggle-button"
-                >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M2.678 11.894a1 1 0 01.287.801 10.97 10.97 0 01-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 01.71-.074A8.06 8.06 0 008 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 01-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 00.244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 01-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/>
-                  </svg>
-                </button>
 
                 <!-- Status dropdown -->
                 <session-status-dropdown

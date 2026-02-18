@@ -155,9 +155,9 @@ export class CommandPalette extends LitElement {
     // Session management
     {
       id: 'new-session',
-      title: 'New Session',
+      title: 'New Shell (no tmux)',
       description: 'Create a new terminal session',
-      icon: '➕',
+      icon: '>_',
       category: 'session',
       action: 'onCreateSession',
       shortcut: 'Ctrl+N',
@@ -181,15 +181,6 @@ export class CommandPalette extends LitElement {
     },
 
     // File operations
-    {
-      id: 'browse-files',
-      title: 'Browse Files',
-      description: 'Open file browser',
-      icon: '📁',
-      category: 'files',
-      action: 'onOpenFileBrowser',
-      shortcut: 'Ctrl+O',
-    },
     {
       id: 'upload-file',
       title: 'Upload File',

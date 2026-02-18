@@ -165,18 +165,10 @@ export class MobileActionBar extends LitElement {
   private readonly secondaryActions: ActionButton[] = [
     {
       id: 'new-session',
-      title: 'New Session',
-      icon: '➕',
+      title: 'New Shell (no tmux)',
+      icon: '>_',
       action: 'onCreateSession',
       shortcut: 'Ctrl+N',
-      category: 'secondary',
-    },
-    {
-      id: 'files',
-      title: 'Files',
-      icon: '📁',
-      action: 'onOpenFileBrowser',
-      longPressAction: 'onUploadFile',
       category: 'secondary',
     },
     {
