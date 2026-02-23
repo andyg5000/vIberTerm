@@ -22,88 +22,88 @@ describe('CLI Verbosity Environment Variables', () => {
     return parseVerbosityFromEnv();
   }
 
-  describe('VIBETERM_LOG_LEVEL', () => {
+  describe('VIBETMUX_LOG_LEVEL', () => {
     it('should parse silent level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'silent';
+      process.env.VIBETMUX_LOG_LEVEL = 'silent';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.SILENT);
     });
 
     it('should parse error level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'error';
+      process.env.VIBETMUX_LOG_LEVEL = 'error';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.ERROR);
     });
 
     it('should parse warn level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'warn';
+      process.env.VIBETMUX_LOG_LEVEL = 'warn';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.WARN);
     });
 
     it('should parse info level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'info';
+      process.env.VIBETMUX_LOG_LEVEL = 'info';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.INFO);
     });
 
     it('should parse verbose level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'verbose';
+      process.env.VIBETMUX_LOG_LEVEL = 'verbose';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.VERBOSE);
     });
 
     it('should parse debug level', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'debug';
+      process.env.VIBETMUX_LOG_LEVEL = 'debug';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.DEBUG);
     });
 
     it('should be case-insensitive', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'DEBUG';
+      process.env.VIBETMUX_LOG_LEVEL = 'DEBUG';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.DEBUG);
 
-      process.env.VIBETERM_LOG_LEVEL = 'WaRn';
+      process.env.VIBETMUX_LOG_LEVEL = 'WaRn';
       const level2 = await getVerbosityFromEnv();
       expect(level2).toBe(VerbosityLevel.WARN);
     });
 
     it('should return undefined for invalid values', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'invalid';
+      process.env.VIBETMUX_LOG_LEVEL = 'invalid';
       const level = await getVerbosityFromEnv();
       expect(level).toBeUndefined();
     });
   });
 
-  describe('VIBETERM_DEBUG (backward compatibility)', () => {
+  describe('VIBETMUX_DEBUG (backward compatibility)', () => {
     it('should enable debug mode with value 1', async () => {
-      process.env.VIBETERM_DEBUG = '1';
+      process.env.VIBETMUX_DEBUG = '1';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.DEBUG);
     });
 
     it('should enable debug mode with value true', async () => {
-      process.env.VIBETERM_DEBUG = 'true';
+      process.env.VIBETMUX_DEBUG = 'true';
       const level = await getVerbosityFromEnv();
       expect(level).toBe(VerbosityLevel.DEBUG);
     });
 
     it('should not enable debug mode with other values', async () => {
-      process.env.VIBETERM_DEBUG = '0';
+      process.env.VIBETMUX_DEBUG = '0';
       const level = await getVerbosityFromEnv();
       expect(level).toBeUndefined();
 
-      process.env.VIBETERM_DEBUG = 'false';
+      process.env.VIBETMUX_DEBUG = 'false';
       const level2 = await getVerbosityFromEnv();
       expect(level2).toBeUndefined();
     });
 
-    it('should NOT override valid VIBETERM_LOG_LEVEL when set', async () => {
-      process.env.VIBETERM_LOG_LEVEL = 'warn';
-      process.env.VIBETERM_DEBUG = '1';
+    it('should NOT override valid VIBETMUX_LOG_LEVEL when set', async () => {
+      process.env.VIBETMUX_LOG_LEVEL = 'warn';
+      process.env.VIBETMUX_DEBUG = '1';
       const level = await getVerbosityFromEnv();
-      expect(level).toBe(VerbosityLevel.WARN); // VIBETERM_LOG_LEVEL takes precedence
+      expect(level).toBe(VerbosityLevel.WARN); // VIBETMUX_LOG_LEVEL takes precedence
     });
   });
 });

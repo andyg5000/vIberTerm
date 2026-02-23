@@ -122,7 +122,7 @@ export async function initializeMonaco(): Promise<void> {
     });
 
     // Add custom themes if needed
-    /*monaco.editor.defineTheme('vibeterm-dark', {
+    /*monaco.editor.defineTheme('vibetmux-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [

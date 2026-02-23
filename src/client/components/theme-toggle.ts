@@ -12,7 +12,7 @@ export class ThemeToggle extends LitElement {
   @property({ type: Boolean })
   expanded = false;
 
-  private readonly STORAGE_KEY = 'vibeterm-theme';
+  private readonly STORAGE_KEY = 'vibetmux-theme';
   private mediaQuery?: MediaQueryList;
 
   connectedCallback() {

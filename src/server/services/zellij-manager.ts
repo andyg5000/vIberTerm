@@ -153,7 +153,7 @@ export class ZellijManager {
   }
 
   /**
-   * Attach to a zellij session through VibeTerm
+   * Attach to a zellij session through VibeTmux
    */
   async attachToZellij(
     sessionName: string,
@@ -171,7 +171,7 @@ export class ZellijManager {
       }
     }
 
-    // Create a new VibeTerm session that runs zellij attach
+    // Create a new VibeTmux session that runs zellij attach
     const sessionOptions: SessionCreateOptions = {
       name: `zellij: ${sessionName}`,
       workingDir: options?.workingDir || process.env.HOME || '/',

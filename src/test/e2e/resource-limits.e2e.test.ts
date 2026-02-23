@@ -27,8 +27,8 @@ describe.skip('Resource Limits and Concurrent Sessions', () => {
       controlDir: testDir,
       env: {
         // Set reasonable limits for testing
-        VIBETERM_MAX_SESSIONS: '20',
-        VIBETERM_MAX_WEBSOCKETS: '50',
+        VIBETMUX_MAX_SESSIONS: '20',
+        VIBETMUX_MAX_WEBSOCKETS: '50',
       },
       serverType: 'RESOURCE_TEST',
     });

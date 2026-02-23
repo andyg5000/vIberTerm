@@ -270,7 +270,7 @@ export function createWorktreeRoutes(): Router {
       // Get follow worktree if configured
       let followBranch: string | undefined;
       try {
-        const { stdout } = await execGit(['config', 'vibeterm.followWorktree'], {
+        const { stdout } = await execGit(['config', 'vibetmux.followWorktree'], {
           cwd: absoluteRepoPath,
         });
         const followWorktreePath = stdout.trim();
@@ -599,7 +599,7 @@ export function createWorktreeRoutes(): Router {
         }
 
         // Set the follow worktree path (not branch name)
-        await execGit(['config', '--local', 'vibeterm.followWorktree', worktree.path], {
+        await execGit(['config', '--local', 'vibetmux.followWorktree', worktree.path], {
           cwd: absoluteRepoPath,
         });
 
@@ -657,7 +657,7 @@ export function createWorktreeRoutes(): Router {
         });
       } else {
         // Unset the follow worktree config
-        await execGit(['config', '--local', '--unset', 'vibeterm.followWorktree'], {
+        await execGit(['config', '--local', '--unset', 'vibetmux.followWorktree'], {
           cwd: absoluteRepoPath,
         });
 

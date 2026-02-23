@@ -8,8 +8,8 @@ export function getVtScriptPath(): string {
 }
 
 /**
- * Get the path to the vibeterm binary for testing
+ * Get the path to the vibetmux binary for testing
  */
-export function getVibetermBinaryPath(): string {
-  return path.join(process.cwd(), 'native', 'vibeterm');
+export function getVibetmuxBinaryPath(): string {
+  return path.join(process.cwd(), 'native', 'vibetmux');
 }

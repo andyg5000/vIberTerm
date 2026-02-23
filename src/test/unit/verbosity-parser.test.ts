@@ -8,8 +8,8 @@ describe('Verbosity Parser', () => {
   beforeEach(() => {
     // Reset environment variables before each test
     process.env = { ...originalEnv };
-    delete process.env.VIBETERM_LOG_LEVEL;
-    delete process.env.VIBETERM_DEBUG;
+    delete process.env.VIBETMUX_LOG_LEVEL;
+    delete process.env.VIBETMUX_DEBUG;
   });
 
   afterEach(() => {
@@ -21,25 +21,25 @@ describe('Verbosity Parser', () => {
       expect(parseVerbosityFromEnv()).toBeUndefined();
     });
 
-    it('should parse VIBETERM_LOG_LEVEL correctly', () => {
-      process.env.VIBETERM_LOG_LEVEL = 'info';
+    it('should parse VIBETMUX_LOG_LEVEL correctly', () => {
+      process.env.VIBETMUX_LOG_LEVEL = 'info';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.INFO);
 
-      process.env.VIBETERM_LOG_LEVEL = 'DEBUG';
+      process.env.VIBETMUX_LOG_LEVEL = 'DEBUG';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.DEBUG);
 
-      process.env.VIBETERM_LOG_LEVEL = 'silent';
+      process.env.VIBETMUX_LOG_LEVEL = 'silent';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.SILENT);
     });
 
-    it('should return undefined for invalid VIBETERM_LOG_LEVEL', () => {
+    it('should return undefined for invalid VIBETMUX_LOG_LEVEL', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      process.env.VIBETERM_LOG_LEVEL = 'invalid';
+      process.env.VIBETMUX_LOG_LEVEL = 'invalid';
       expect(parseVerbosityFromEnv()).toBeUndefined();
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
-      expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid VIBETERM_LOG_LEVEL: invalid');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid VIBETMUX_LOG_LEVEL: invalid');
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         'Valid levels: silent, error, warn, info, verbose, debug'
       );
@@ -47,42 +47,42 @@ describe('Verbosity Parser', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    it('should handle VIBETERM_DEBUG=1', () => {
-      process.env.VIBETERM_DEBUG = '1';
+    it('should handle VIBETMUX_DEBUG=1', () => {
+      process.env.VIBETMUX_DEBUG = '1';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.DEBUG);
     });
 
-    it('should handle VIBETERM_DEBUG=true', () => {
-      process.env.VIBETERM_DEBUG = 'true';
+    it('should handle VIBETMUX_DEBUG=true', () => {
+      process.env.VIBETMUX_DEBUG = 'true';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.DEBUG);
     });
 
-    it('should ignore VIBETERM_DEBUG when set to other values', () => {
-      process.env.VIBETERM_DEBUG = '0';
+    it('should ignore VIBETMUX_DEBUG when set to other values', () => {
+      process.env.VIBETMUX_DEBUG = '0';
       expect(parseVerbosityFromEnv()).toBeUndefined();
 
-      process.env.VIBETERM_DEBUG = 'false';
+      process.env.VIBETMUX_DEBUG = 'false';
       expect(parseVerbosityFromEnv()).toBeUndefined();
 
-      process.env.VIBETERM_DEBUG = 'yes';
+      process.env.VIBETMUX_DEBUG = 'yes';
       expect(parseVerbosityFromEnv()).toBeUndefined();
     });
 
-    it('should prioritize VIBETERM_LOG_LEVEL over VIBETERM_DEBUG', () => {
-      process.env.VIBETERM_LOG_LEVEL = 'warn';
-      process.env.VIBETERM_DEBUG = '1';
+    it('should prioritize VIBETMUX_LOG_LEVEL over VIBETMUX_DEBUG', () => {
+      process.env.VIBETMUX_LOG_LEVEL = 'warn';
+      process.env.VIBETMUX_DEBUG = '1';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.WARN);
     });
 
-    it('should return DEBUG when VIBETERM_LOG_LEVEL is invalid but VIBETERM_DEBUG is set', () => {
+    it('should return DEBUG when VIBETMUX_LOG_LEVEL is invalid but VIBETMUX_DEBUG is set', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      process.env.VIBETERM_LOG_LEVEL = 'invalid';
-      process.env.VIBETERM_DEBUG = '1';
+      process.env.VIBETMUX_LOG_LEVEL = 'invalid';
+      process.env.VIBETMUX_DEBUG = '1';
       expect(parseVerbosityFromEnv()).toBe(VerbosityLevel.DEBUG);
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
-      expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid VIBETERM_LOG_LEVEL: invalid');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid VIBETMUX_LOG_LEVEL: invalid');
 
       consoleWarnSpy.mockRestore();
     });

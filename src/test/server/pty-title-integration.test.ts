@@ -33,7 +33,7 @@ describe('PTY Terminal Title Integration', () => {
     testSessionIds = [];
 
     // NEVER call ptyManager.shutdown() as it would kill ALL sessions
-    // including the VibeTerm session running Claude Code
+    // including the VibeTmux session running Claude Code
 
     // Clean up control directory
     try {

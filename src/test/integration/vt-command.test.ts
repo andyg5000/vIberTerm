@@ -34,7 +34,7 @@ describe('vt command', () => {
     expect(packageJson.bin).toBeDefined();
     // vt should NOT be in bin section to avoid conflicts with other tools
     expect(packageJson.bin.vt).toBeUndefined();
-    expect(packageJson.bin.vibeterm).toBe('./bin/vibeterm');
+    expect(packageJson.bin.vibetmux).toBe('./bin/vibetmux');
   });
 
   it('should show help when called with --help', (done) => {
@@ -60,13 +60,13 @@ describe('vt command', () => {
         expect(code).toBe(0);
 
         // Should contain help content
-        expect(stdout).toContain('vt - VibeTerm TTY Forward Wrapper');
+        expect(stdout).toContain('vt - VibeTmux TTY Forward Wrapper');
         expect(stdout).toContain('USAGE:');
         expect(stdout).toContain('EXAMPLES:');
         expect(stdout).toContain('OPTIONS:');
 
         // Should show binary path information
-        expect(stdout).toContain('VIBETUNNEL BINARY:');
+        expect(stdout).toContain('VIBETMUX BINARY:');
         expect(stdout).toContain('Path:');
 
         // Should not have errors
@@ -106,7 +106,7 @@ describe('vt command', () => {
         expect(code).toBe(0);
 
         // Should contain help content
-        expect(stdout).toContain('vt - VibeTerm TTY Forward Wrapper');
+        expect(stdout).toContain('vt - VibeTmux TTY Forward Wrapper');
         expect(stdout).toContain('USAGE:');
 
         done();
@@ -124,7 +124,7 @@ describe('vt command', () => {
     const child = spawn('bash', [vtScriptPath, 'title', 'test'], {
       cwd: projectRoot,
       stdio: 'pipe',
-      env: { ...process.env, VIBETERM_SESSION_ID: '' }, // Ensure no session ID
+      env: { ...process.env, VIBETMUX_SESSION_ID: '' }, // Ensure no session ID
     });
 
     let _stdout = '';
@@ -144,7 +144,7 @@ describe('vt command', () => {
         expect(code).toBe(1);
 
         // Should show error message
-        expect(stderr).toContain("vt title' can only be used inside a VibeTerm session");
+        expect(stderr).toContain("vt title' can only be used inside a VibeTmux session");
 
         done();
       } catch (error) {
@@ -163,12 +163,12 @@ describe('vt command', () => {
     // Check for essential functions and structures
     expect(scriptContent).toContain('show_help()');
     expect(scriptContent).toContain('resolve_command()');
-    expect(scriptContent).toContain('VIBETERM_BIN');
-    expect(scriptContent).toContain('exec "$VIBETERM_BIN"');
+    expect(scriptContent).toContain('VIBETMUX_BIN');
+    expect(scriptContent).toContain('exec "$VIBETMUX_BIN"');
 
     // Check for critical conditionals
-    expect(scriptContent).toContain('if [ -z "$VIBETERM_BIN" ]');
-    expect(scriptContent).toContain('if [ -n "$VIBETERM_SESSION_ID" ]');
+    expect(scriptContent).toContain('if [ -z "$VIBETMUX_BIN" ]');
+    expect(scriptContent).toContain('if [ -n "$VIBETMUX_SESSION_ID" ]');
 
     // Check that follow command handling exists
     expect(scriptContent).toContain('if [[ "$1" == "follow" ]]');

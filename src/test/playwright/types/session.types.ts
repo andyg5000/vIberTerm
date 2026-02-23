@@ -1,5 +1,5 @@
 /**
- * Type definitions for VibeTerm sessions
+ * Type definitions for VibeTmux sessions
  */
 
 export interface SessionInfo {

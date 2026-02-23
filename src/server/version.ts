@@ -1,4 +1,4 @@
-// Version information for VibeTerm Server
+// Version information for VibeTmux Server
 // This file is updated during the build process
 
 import chalk from 'chalk';
@@ -38,7 +38,7 @@ export function getVersionInfo() {
 }
 
 export function printVersionBanner() {
-  logger.log(chalk.green(`VibeTerm Server v${VERSION}`));
+  logger.log(chalk.green(`VibeTmux Server v${VERSION}`));
   logger.log(chalk.gray(`Built: ${BUILD_DATE}`));
   logger.log(chalk.gray(`Platform: ${PLATFORM}/${ARCH} Node ${NODE_VERSION}`));
   logger.log(chalk.gray(`PID: ${process.pid}`));

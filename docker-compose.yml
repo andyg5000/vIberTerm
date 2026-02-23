@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  vibeterm-npm-beta:
+  vibetmux-npm-beta:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: vibeterm-npm-beta-test
+    container_name: vibetmux-npm-beta-test
     environment:
       - NODE_ENV=development
-      - VIBETERM_NO_AUTH=true
+      - VIBETMUX_NO_AUTH=true
     volumes:
       # Mount source code for development
       - ./src:/app/src

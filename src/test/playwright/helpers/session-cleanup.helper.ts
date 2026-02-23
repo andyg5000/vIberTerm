@@ -179,7 +179,7 @@ export class SessionCleanupHelper {
 
   /**
    * Safe cleanup - only removes sessions created by tests
-   * NEVER uses Kill All button to avoid killing the VibeTerm session running Claude Code
+   * NEVER uses Kill All button to avoid killing the VibeTmux session running Claude Code
    */
   async cleanupTestSessions(): Promise<void> {
     try {

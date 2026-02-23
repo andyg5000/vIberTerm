@@ -1,6 +1,6 @@
-# VibeTerm Standalone Server
+# VibeTmux Standalone Server
 
-Run VibeTerm as a standalone web terminal server without the macOS app. Perfect for remote machines, Docker containers, and quick terminal sharing.
+Run VibeTmux as a standalone web terminal server without the macOS app. Perfect for remote machines, Docker containers, and quick terminal sharing.
 
 ## Quick Start
 
@@ -8,48 +8,48 @@ Run VibeTerm as a standalone web terminal server without the macOS app. Perfect 
 
 ```bash
 # Run with no authentication (demo/testing)
-npx vibeterm --no-auth
+npx vibetmux --no-auth
 
 # Run with ngrok tunnel for instant sharing
-npx vibeterm --no-auth --ngrok
+npx vibetmux --no-auth --ngrok
 
 # Run with Cloudflare tunnel (no auth needed)
-npx vibeterm --no-auth --cloudflare
+npx vibetmux --no-auth --cloudflare
 
 # Run with Tailscale tunnel
-npx vibeterm --no-auth --enable-tailscale-serve
+npx vibetmux --no-auth --enable-tailscale-serve
 
 # Run with custom port
-npx vibeterm --port 8080 --no-auth
+npx vibetmux --port 8080 --no-auth
 ```
 
 ### Global Installation
 
 ```bash
 # Install globally
-npm install -g vibeterm
+npm install -g vibetmux
 
 # Run the server
-vibeterm --no-auth
+vibetmux --no-auth
 ```
 
 ### Docker
 
 ```bash
 # Build the image
-docker build -f Dockerfile.standalone -t vibeterm .
+docker build -f Dockerfile.standalone -t vibetmux .
 
 # Mount your code and run with ngrok tunnel
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 
 # With Cloudflare tunnel (no auth needed)
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --cloudflare
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --cloudflare
 
 # Local development (no tunnel)
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --no-auth
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --no-auth
 
 # With ngrok auth token for custom domain
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok --ngrok-auth YOUR_TOKEN
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok --ngrok-auth YOUR_TOKEN
 ```
 
 ## CLI Options
@@ -89,18 +89,18 @@ Access a remote server's terminal through a web browser:
 
 ```bash
 # Method 1: Built-in ngrok (easiest!)
-npx vibeterm --no-auth --ngrok
+npx vibetmux --no-auth --ngrok
 # Output: Public URL: https://abc123.ngrok.io
 
 # Method 2: Built-in Cloudflare (no auth needed)
-npx vibeterm --no-auth --cloudflare  
+npx vibetmux --no-auth --cloudflare  
 # Output: Public URL: https://random-words.trycloudflare.com
 
 # Method 3: With Tailscale (if configured)
-npx vibeterm --no-auth --enable-tailscale-serve
+npx vibetmux --no-auth --enable-tailscale-serve
 
 # Method 4: With ngrok auth for custom domain
-npx vibeterm --no-auth --ngrok --ngrok-auth YOUR_TOKEN --ngrok-domain custom.ngrok.io
+npx vibetmux --no-auth --ngrok --ngrok-auth YOUR_TOKEN --ngrok-domain custom.ngrok.io
 ```
 
 ### Docker Development Environment
@@ -109,10 +109,10 @@ Mount your project and get instant web terminal access:
 
 ```bash
 # Quick development container with tunnel
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 
 # Or for team development
-docker run -v /path/to/project:/workspace -p 4020:4020 vibeterm --cloudflare
+docker run -v /path/to/project:/workspace -p 4020:4020 vibetmux --cloudflare
 
 # Your code is available at /workspace in the web terminal
 # Access via the tunnel URL from anywhere
@@ -124,18 +124,18 @@ Share your terminal session in one command:
 
 ```bash
 # Instant sharing with ngrok
-npx vibeterm --no-auth --ngrok
+npx vibetmux --no-auth --ngrok
 
 # Or with Cloudflare (no signup needed)
-npx vibeterm --no-auth --cloudflare
+npx vibetmux --no-auth --cloudflare
 
 # With Tailscale (if configured)
-npx vibeterm --no-auth --enable-tailscale-serve
+npx vibetmux --no-auth --enable-tailscale-serve
 ```
 
 ### Kubernetes Pod Access
 
-Deploy VibeTerm as a sidecar container for web-based pod access:
+Deploy VibeTmux as a sidecar container for web-based pod access:
 
 ```yaml
 apiVersion: v1
@@ -146,12 +146,12 @@ spec:
   containers:
   - name: main-app
     image: your-app:latest
-  - name: vibeterm
-    image: vibeterm:latest
+  - name: vibetmux
+    image: vibetmux:latest
     ports:
     - containerPort: 4020
     env:
-    - name: VIBETERM_NO_AUTH
+    - name: VIBETMUX_NO_AUTH
       value: "true"
 ```
 
@@ -171,16 +171,16 @@ For production use:
 ## Environment Variables
 
 - `PORT` - Default port if --port not specified
-- `VIBETERM_DEBUG` - Enable debug logging
-- `VIBETERM_CONTROL_DIR` - Control directory for session data
+- `VIBETMUX_DEBUG` - Enable debug logging
+- `VIBETMUX_CONTROL_DIR` - Control directory for session data
 - `NGROK_AUTHTOKEN` - Ngrok auth token (alternative to --ngrok-auth)
 
 ## Building from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/amantus-ai/vibeterm.git
-cd vibeterm/web
+git clone https://github.com/amantus-ai/vibetmux.git
+cd vibetmux/web
 
 # Install dependencies
 pnpm install

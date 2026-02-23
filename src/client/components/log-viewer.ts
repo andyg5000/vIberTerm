@@ -204,7 +204,7 @@ export class LogViewer extends LitElement {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `vibeterm-logs-${new Date().toISOString().split('T')[0]}.txt`;
+      a.download = `vibetmux-logs-${new Date().toISOString().split('T')[0]}.txt`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {

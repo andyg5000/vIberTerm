@@ -92,7 +92,7 @@ export class SessionCard extends LitElement {
 
     // Listen for storage changes to update theme reactively (cross-tab)
     this.storageListener = (e: StorageEvent) => {
-      if (e.key === 'vibeterm_terminal_preferences') {
+      if (e.key === 'vibetmux_terminal_preferences') {
         this.loadThemeFromStorage();
       }
     };

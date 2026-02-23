@@ -5,7 +5,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getVibetermBinaryPath, getVtScriptPath } from '../helpers/vt-paths.js';
+import { getVibetmuxBinaryPath, getVtScriptPath } from '../helpers/vt-paths.js';
 
 const execAsync = promisify(exec);
 
@@ -29,7 +29,7 @@ function normalizeStderr(stderr: string): string {
 describe('vt title Command Integration', () => {
   let testControlDir: string;
   let vtScriptPath: string;
-  let vibetermPath: string;
+  let vibetmuxPath: string;
 
   beforeEach(async () => {
     // Create test control directory with shorter path
@@ -37,9 +37,9 @@ describe('vt title Command Integration', () => {
     testControlDir = path.join(os.tmpdir(), `vt-${shortId}`);
     await fs.mkdir(testControlDir, { recursive: true });
 
-    // Get path to vt script and vibeterm binary
+    // Get path to vt script and vibetmux binary
     vtScriptPath = getVtScriptPath();
-    vibetermPath = getVibetermBinaryPath();
+    vibetmuxPath = getVibetmuxBinaryPath();
   });
 
   afterEach(async () => {
@@ -52,9 +52,9 @@ describe('vt title Command Integration', () => {
   });
 
   it('should show error when vt title is used outside a session', async () => {
-    // Test using vibeterm directly with --update-title flag (which vt script would call)
+    // Test using vibetmux directly with --update-title flag (which vt script would call)
     try {
-      await execAsync(`${vibetermPath} fwd --update-title "Test Title"`);
+      await execAsync(`${vibetmuxPath} fwd --update-title "Test Title"`);
       // Should not reach here
       expect.fail('Command should have failed');
     } catch (error) {
@@ -87,26 +87,26 @@ describe('vt title Command Integration', () => {
     const sessionJsonPath = path.join(sessionDir, 'session.json');
     await fs.writeFile(sessionJsonPath, JSON.stringify(initialSessionInfo, null, 2));
 
-    // Set up environment as if we're inside a VibeTerm session
+    // Set up environment as if we're inside a VibeTmux session
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: os.homedir(),
     };
 
     // Override HOME to use our test directory
     const mockHome = path.join(testControlDir, 'home');
-    await fs.mkdir(path.join(mockHome, '.vibeterm', 'control'), { recursive: true });
+    await fs.mkdir(path.join(mockHome, '.vibetmux', 'control'), { recursive: true });
 
     // Create symlink from mock home to our test session
-    const mockControlDir = path.join(mockHome, '.vibeterm', 'control');
+    const mockControlDir = path.join(mockHome, '.vibetmux', 'control');
     await fs.symlink(sessionDir, path.join(mockControlDir, sessionId));
 
     env.HOME = mockHome;
 
-    // Run vibeterm directly with --update-title flag (what vt script would call)
+    // Run vibetmux directly with --update-title flag (what vt script would call)
     const { stderr } = await execAsync(
-      `${vibetermPath} fwd --update-title "Updated Title" --session-id "${sessionId}"`,
+      `${vibetmuxPath} fwd --update-title "Updated Title" --session-id "${sessionId}"`,
       { env }
     );
 
@@ -144,12 +144,12 @@ describe('vt title Command Integration', () => {
 
     // Set up environment
     const mockHome = path.join(testControlDir, 'home');
-    await fs.mkdir(path.join(mockHome, '.vibeterm', 'control'), { recursive: true });
-    await fs.symlink(sessionDir, path.join(mockHome, '.vibeterm', 'control', sessionId));
+    await fs.mkdir(path.join(mockHome, '.vibetmux', 'control'), { recursive: true });
+    await fs.symlink(sessionDir, path.join(mockHome, '.vibetmux', 'control', sessionId));
 
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: mockHome,
     };
 
@@ -171,11 +171,11 @@ describe('vt title Command Integration', () => {
     ];
 
     for (const title of specialTitles) {
-      // Run vibeterm directly
+      // Run vibetmux directly
       // Use single quotes for shell safety and escape any single quotes in the title
       const escapedTitle = title.replace(/'/g, "'\"'\"'");
       const { stderr } = await execAsync(
-        `${vibetermPath} fwd --update-title '${escapedTitle}' --session-id "${sessionId}"`,
+        `${vibetmuxPath} fwd --update-title '${escapedTitle}' --session-id "${sessionId}"`,
         { env }
       );
 
@@ -194,13 +194,13 @@ describe('vt title Command Integration', () => {
     // Set up environment without creating session.json
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: testControlDir, // Use test dir as home
     };
 
-    // Run vibeterm directly
+    // Run vibetmux directly
     try {
-      await execAsync(`${vibetermPath} fwd --update-title "Test" --session-id "${sessionId}"`, {
+      await execAsync(`${vibetmuxPath} fwd --update-title "Test" --session-id "${sessionId}"`, {
         env,
       });
       expect.fail('Should have failed');
@@ -233,19 +233,19 @@ describe('vt title Command Integration', () => {
 
     // Set up environment
     const mockHome = path.join(testControlDir, 'home');
-    await fs.mkdir(path.join(mockHome, '.vibeterm', 'control'), { recursive: true });
-    await fs.symlink(sessionDir, path.join(mockHome, '.vibeterm', 'control', sessionId));
+    await fs.mkdir(path.join(mockHome, '.vibetmux', 'control'), { recursive: true });
+    await fs.symlink(sessionDir, path.join(mockHome, '.vibetmux', 'control', sessionId));
 
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: mockHome,
       PATH: '/usr/bin:/bin', // Minimal PATH that likely excludes jq
     };
 
-    // Run vibeterm directly (fwd doesn't use jq/sed, it updates directly)
+    // Run vibetmux directly (fwd doesn't use jq/sed, it updates directly)
     const { stderr } = await execAsync(
-      `${vibetermPath} fwd --update-title "Sed Fallback Test" --session-id "${sessionId}"`,
+      `${vibetmuxPath} fwd --update-title "Sed Fallback Test" --session-id "${sessionId}"`,
       { env }
     );
 
@@ -276,21 +276,21 @@ describe('vt title Command Integration', () => {
 
     // Set up environment
     const mockHome = path.join(testControlDir, 'home');
-    await fs.mkdir(path.join(mockHome, '.vibeterm', 'control'), { recursive: true });
-    await fs.symlink(sessionDir, path.join(mockHome, '.vibeterm', 'control', sessionId));
+    await fs.mkdir(path.join(mockHome, '.vibetmux', 'control'), { recursive: true });
+    await fs.symlink(sessionDir, path.join(mockHome, '.vibetmux', 'control', sessionId));
 
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: mockHome,
     };
 
-    // Run multiple vibeterm commands concurrently
+    // Run multiple vibetmux commands concurrently
     const promises = [];
     for (let i = 0; i < 10; i++) {
       promises.push(
         execAsync(
-          `${vibetermPath} fwd --update-title "Concurrent Update ${i}" --session-id "${sessionId}"`,
+          `${vibetmuxPath} fwd --update-title "Concurrent Update ${i}" --session-id "${sessionId}"`,
           { env }
         )
       );
@@ -335,12 +335,12 @@ describe('vt title Command Integration', () => {
 
     // Set up environment
     const mockHome = path.join(testControlDir, 'home');
-    await fs.mkdir(path.join(mockHome, '.vibeterm', 'control'), { recursive: true });
-    await fs.symlink(sessionDir, path.join(mockHome, '.vibeterm', 'control', sessionId));
+    await fs.mkdir(path.join(mockHome, '.vibetmux', 'control'), { recursive: true });
+    await fs.symlink(sessionDir, path.join(mockHome, '.vibetmux', 'control', sessionId));
 
     const env = {
       ...process.env,
-      VIBETERM_SESSION_ID: sessionId,
+      VIBETMUX_SESSION_ID: sessionId,
       HOME: mockHome,
     };
 

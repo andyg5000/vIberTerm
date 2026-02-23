@@ -144,7 +144,7 @@ export class ControlDirWatcher {
                 body: `${sessionName} has started.`,
                 icon: '/apple-touch-icon.png',
                 badge: '/favicon-32.png',
-                tag: `vibeterm-session-start-${sessionId}`,
+                tag: `vibetmux-session-start-${sessionId}`,
                 requireInteraction: false,
                 data: {
                   type: 'session-start',

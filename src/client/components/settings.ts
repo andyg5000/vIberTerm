@@ -334,7 +334,7 @@ export class Settings extends LitElement {
 
       // Step 5: Send test notification
       logger.debug('Step 5: Sending test notification');
-      await pushNotificationService.sendTestNotification('Test notification from VibeTerm');
+      await pushNotificationService.sendTestNotification('Test notification from VibeTmux');
 
       logger.log('✅ Test notification sent successfully');
       this.dispatchEvent(
@@ -387,11 +387,11 @@ export class Settings extends LitElement {
 
     try {
       // Show notification directly
-      await registration.showNotification('VibeTerm Notifications Enabled', {
+      await registration.showNotification('VibeTmux Notifications Enabled', {
         body: "You'll now receive notifications for session events",
         icon: '/apple-touch-icon.png',
         badge: '/favicon-32.png',
-        tag: 'vibeterm-settings-welcome',
+        tag: 'vibetmux-settings-welcome',
         requireInteraction: false,
         silent: false,
       });
@@ -544,10 +544,10 @@ export class Settings extends LitElement {
                         ⚠️ Push notifications require a secure connection
                       </p>
                       <p class="text-xs text-status-warning opacity-80 mb-2">
-                        You're accessing VibeTerm via ${window.location.protocol}//${window.location.hostname}
+                        You're accessing VibeTmux via ${window.location.protocol}//${window.location.hostname}
                       </p>
                       <p class="text-xs text-status-info opacity-90">
-                        To enable notifications, access VibeTerm using:
+                        To enable notifications, access VibeTmux using:
                         <br>• https://${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}
                         <br>• http://localhost:${window.location.port || '4020'}
                         <br>• http://127.0.0.1:${window.location.port || '4020'}

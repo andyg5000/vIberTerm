@@ -491,10 +491,10 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
           logger.log(
             chalk.green(`[PATCH] Tmux session "${tmuxSessionName}" renamed to "${name.trim()}"`)
           );
-          // Update the VibeTerm session name to reflect new tmux target
+          // Update the VibeTmux session name to reflect new tmux target
           ptyManager.updateSessionName(sessionId, `tmux: ${name.trim()}`);
         } catch (tmuxError) {
-          // Non-fatal: VibeTerm rename succeeded, tmux rename failed
+          // Non-fatal: VibeTmux rename succeeded, tmux rename failed
           logger.warn(`[PATCH] Failed to rename tmux session:`, tmuxError);
         }
       }

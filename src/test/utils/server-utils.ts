@@ -40,7 +40,7 @@ export interface ServerInstance {
  * Default paths and timeouts
  */
 const CLI_PATH = path.join(process.cwd(), 'src', 'cli.ts');
-const BUILT_CLI_PATH = path.join(process.cwd(), 'dist', 'vibeterm-cli');
+const BUILT_CLI_PATH = path.join(process.cwd(), 'dist', 'vibetmux-cli');
 const DEFAULT_TIMEOUT = 30000;
 const HEALTH_CHECK_INTERVAL = 100;
 const PROCESS_KILL_TIMEOUT = 5000;
@@ -52,10 +52,10 @@ const PROCESS_KILL_TIMEOUT = 5000;
  */
 export function extractPortFromOutput(output: string): number | null {
   const patterns = [
-    /VibeTerm Server running on http:\/\/(?:localhost|[\d.]+):(\d+)/,
+    /VibeTmux Server running on http:\/\/(?:localhost|[\d.]+):(\d+)/,
     /Server listening on port (\d+)/,
     // Also match when timestamp is present
-    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\s+LOG\s+\[[\w-]+\]\s+VibeTerm Server running on http:\/\/(?:localhost|[\d.]+):(\d+)/,
+    /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\s+LOG\s+\[[\w-]+\]\s+VibeTmux Server running on http:\/\/(?:localhost|[\d.]+):(\d+)/,
   ];
 
   for (const pattern of patterns) {
@@ -131,7 +131,7 @@ export async function waitForServerHealth(
 }
 
 /**
- * Starts a VibeTerm test server with standardized configuration
+ * Starts a VibeTmux test server with standardized configuration
  * @param config - Server configuration options
  * @returns Server instance with process and port
  */
@@ -160,11 +160,11 @@ export async function startTestServer(config: ServerConfig = {}): Promise<Server
   // Merge environment variables
   const processEnv = {
     ...process.env,
-    VIBETERM_CONTROL_DIR: controlDir,
+    VIBETMUX_CONTROL_DIR: controlDir,
     NODE_ENV: 'production',
     FORCE_COLOR: '0',
     // Ensure INFO verbosity for tests to see server startup messages
-    VIBETERM_LOG_LEVEL: env.VIBETERM_LOG_LEVEL || env.VIBETERM_DEBUG ? undefined : 'info',
+    VIBETMUX_LOG_LEVEL: env.VIBETMUX_LOG_LEVEL || env.VIBETMUX_DEBUG ? undefined : 'info',
     ...env,
   };
 

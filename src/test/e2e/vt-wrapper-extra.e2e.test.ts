@@ -16,11 +16,11 @@ import { cleanupTestDirectories, sleep, startTestServer, stopServer } from '../u
 
 function resolveForwarderPath(): string {
   const candidates: string[] = [];
-  if (process.env.VIBETERM_FWD_BIN) {
-    candidates.push(process.env.VIBETERM_FWD_BIN);
+  if (process.env.VIBETMUX_FWD_BIN) {
+    candidates.push(process.env.VIBETMUX_FWD_BIN);
   }
-  candidates.push(path.join(process.cwd(), 'native', 'vibeterm-fwd'));
-  candidates.push(path.join(process.cwd(), 'bin', 'vibeterm-fwd'));
+  candidates.push(path.join(process.cwd(), 'native', 'vibetmux-fwd'));
+  candidates.push(path.join(process.cwd(), 'bin', 'vibetmux-fwd'));
 
   for (const candidate of candidates) {
     if (candidate && existsSync(candidate)) {
@@ -30,7 +30,7 @@ function resolveForwarderPath(): string {
   }
 
   throw new Error(
-    `vibeterm-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
+    `vibetmux-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
   );
 }
 
@@ -38,10 +38,10 @@ function createShortHomeDir(): string {
   return mkdtempSync(path.join('/tmp', 'vth-'));
 }
 
-function createVibetermCliWrapper(homeDir: string): string {
+function createVibetmuxCliWrapper(homeDir: string): string {
   const cliPath = path.join(process.cwd(), 'src', 'cli.ts');
   const wrapperDir = path.join(homeDir, 'bin');
-  const wrapperPath = path.join(wrapperDir, 'vibeterm');
+  const wrapperPath = path.join(wrapperDir, 'vibetmux');
 
   mkdirSync(wrapperDir, { recursive: true });
   writeFileSync(wrapperPath, `#!/usr/bin/env bash\nexec tsx "${cliPath}" "$@"\n`, 'utf-8');
@@ -99,12 +99,12 @@ describe('vt wrapper extra flows', () => {
   let server: ServerInstance | null = null;
   let homeDir = '';
   let controlDir = '';
-  let vibetermBin = '';
+  let vibetmuxBin = '';
 
   beforeAll(async () => {
     homeDir = createShortHomeDir();
-    controlDir = path.join(homeDir, '.vibeterm', 'control');
-    vibetermBin = createVibetermCliWrapper(homeDir);
+    controlDir = path.join(homeDir, '.vibetmux', 'control');
+    vibetmuxBin = createVibetmuxCliWrapper(homeDir);
 
     server = await startTestServer({
       args: ['--port', '0', '--no-auth'],
@@ -137,9 +137,9 @@ describe('vt wrapper extra flows', () => {
         ...process.env,
         HOME: homeDir,
         SHELL: '/bin/bash',
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_FWD_BIN: forwarderPath,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_FWD_BIN: forwarderPath,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       stdio: ['ignore', 'ignore', 'pipe'],
     });
@@ -187,9 +187,9 @@ describe('vt wrapper extra flows', () => {
         PATH: `${binDir}:${process.env.PATH || ''}`,
         HOME: homeDir,
         SHELL: '/bin/bash',
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_FWD_BIN: forwarderPath,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_FWD_BIN: forwarderPath,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       stdio: ['ignore', 'ignore', 'pipe'],
     });
@@ -227,14 +227,14 @@ describe('vt wrapper extra flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       encoding: 'utf-8',
     });
 
     expect(result.status).toBe(0);
-    expect(String(result.stdout)).toContain('VibeTerm Server Status:');
+    expect(String(result.stdout)).toContain('VibeTmux Server Status:');
     expect(String(result.stdout)).toContain('Running: Yes');
   });
 
@@ -245,8 +245,8 @@ describe('vt wrapper extra flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       encoding: 'utf-8',
     });

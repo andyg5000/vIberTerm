@@ -1,8 +1,8 @@
-# Asciicast Pruning in VibeTunnel
+# Asciicast Pruning in VibeTmux
 
 ## Overview
 
-VibeTunnel implements an intelligent pruning system to prevent session recordings from growing indefinitely. This is critical for long-running terminal sessions (like Claude Code sessions) that can generate gigabytes of output over time. The pruning system detects terminal clear operations and uses them as safe points to discard old content.
+VibeTmux implements an intelligent pruning system to prevent session recordings from growing indefinitely. This is critical for long-running terminal sessions (like Claude Code sessions) that can generate gigabytes of output over time. The pruning system detects terminal clear operations and uses them as safe points to discard old content.
 
 ## The Problem
 
@@ -223,17 +223,17 @@ To debug pruning:
 
 1. Check for pruning detection in logs:
    ```bash
-   grep -i "pruning" ~/.vibetunnel/log.txt
+   grep -i "pruning" ~/.vibetmux/log.txt
    ```
 
 2. Verify session info:
    ```bash
-   cat ~/.vibetunnel/sessions/*/session.json | jq .lastClearOffset
+   cat ~/.vibetmux/sessions/*/session.json | jq .lastClearOffset
    ```
 
 3. Enable debug logging to see detailed pruning calculations:
    ```bash
-   export VIBETUNNEL_VERBOSITY=debug
+   export VIBETMUX_VERBOSITY=debug
    ```
 
 ## Limitations

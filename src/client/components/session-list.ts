@@ -148,7 +148,7 @@ export class SessionList extends LitElement {
   }
 
   /**
-   * Deduplicate tmux sessions: keep only one VibeTerm session per tmux session.
+   * Deduplicate tmux sessions: keep only one VibeTmux session per tmux session.
    * For each tmux session name, keep the session-level attach (no window suffix)
    * or the most recently started one. Non-tmux sessions pass through unchanged.
    */
@@ -877,7 +877,7 @@ export class SessionList extends LitElement {
                               Haven't installed the CLI yet?
                             </div>
                             <div class="text-sm text-text-muted space-y-1">
-                              <div>→ Click the VibeTerm menu bar icon</div>
+                              <div>→ Click the VibeTmux menu bar icon</div>
                               <div>→ Go to Settings → Advanced → Install CLI Tools</div>
                             </div>
                           </div>

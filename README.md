@@ -1,24 +1,24 @@
-# VibeTerm CLI
+# VibeTmux CLI
 
-**Turn any browser into your terminal.** VibeTerm proxies your terminals right into the browser, so you can vibe-code anywhere.
+**Turn any browser into your terminal.** VibeTmux proxies your terminals right into the browser, so you can vibe-code anywhere.
 
 Full-featured terminal sharing server with web interface for macOS and Linux. Windows not yet supported.
 
-## Why VibeTerm?
+## Why VibeTmux?
 
-Ever wanted to check on your AI agents while you're away? Need to monitor that long-running build from your phone? Want to share a terminal session with a colleague without complex SSH setups? VibeTerm makes it happen with zero friction.
+Ever wanted to check on your AI agents while you're away? Need to monitor that long-running build from your phone? Want to share a terminal session with a colleague without complex SSH setups? VibeTmux makes it happen with zero friction.
 
 ## Installation
 
 ### From npm (Recommended)
 ```bash
-npm install -g vibeterm
+npm install -g vibetmux
 ```
 
 ### From Source
 ```bash
-git clone https://github.com/amantus-ai/vibeterm.git
-cd vibeterm/web
+git clone https://github.com/amantus-ai/vibetmux.git
+cd vibetmux/web
 pnpm install
 pnpm run build
 ```
@@ -28,7 +28,7 @@ pnpm run build
 **npm package**:
 - Pre-built binaries for common platforms (macOS x64/arm64, Linux x64/arm64)
 - Automatic fallback to source compilation if pre-built binaries unavailable
-- Global installation makes `vibeterm` command available system-wide
+- Global installation makes `vibetmux` command available system-wide
 - Conditional `vt` command installation (see [VT Installation Guide](docs/VT_INSTALLATION.md))
 - Includes production dependencies only
 
@@ -50,22 +50,22 @@ pnpm run build
 
 ```bash
 # Start with default settings (port 4020)
-vibeterm
+vibetmux
 
 # Start with custom port
-vibeterm --port 8080
+vibetmux --port 8080
 
 # Start without authentication
-vibeterm --no-auth
+vibetmux --no-auth
 
 # Bind to specific interface
-vibeterm --bind 127.0.0.1 --port 4020
+vibetmux --bind 127.0.0.1 --port 4020
 
 # Enable SSH key authentication
-vibeterm --enable-ssh-keys
+vibetmux --enable-ssh-keys
 
 # SSH keys only (no password auth)
-vibeterm --disallow-user-password
+vibetmux --disallow-user-password
 ```
 
 Then open http://localhost:4020 in your browser to access the web interface.
@@ -73,7 +73,7 @@ Then open http://localhost:4020 in your browser to access the web interface.
 ### Command-line Options
 
 ```
-vibeterm [options]
+vibetmux [options]
 
 Basic Options:
   --help, -h            Show help message
@@ -125,7 +125,7 @@ The `vt` command allows you to run commands with TTY forwarding:
 vt claude
 vt claude --dangerously-skip-permissions
 
-# Run commands with output visible in VibeTerm
+# Run commands with output visible in VibeTmux
 vt npm test
 vt python script.py
 vt top
@@ -157,39 +157,39 @@ vt -vvv npm build       # Debug mode
 
 ```bash
 # Basic usage
-vibeterm fwd <session-id> <command> [args...]
+vibetmux fwd <session-id> <command> [args...]
 
 # Examples
-vibeterm fwd --session-id abc123 ls -la
-vibeterm fwd --session-id abc123 npm test
-vibeterm fwd --session-id abc123 python script.py
+vibetmux fwd --session-id abc123 ls -la
+vibetmux fwd --session-id abc123 npm test
+vibetmux fwd --session-id abc123 python script.py
 ```
 
-Linux users can install VibeTerm as a systemd service with `vibeterm systemd` for automatic startup and process management - see [detailed systemd documentation](docs/systemd.md).
+Linux users can install VibeTmux as a systemd service with `vibetmux systemd` for automatic startup and process management - see [detailed systemd documentation](docs/systemd.md).
 
 ### Environment Variables
 
-VibeTerm respects the following environment variables:
+VibeTmux respects the following environment variables:
 
 ```bash
 PORT=8080                           # Default port if --port not specified
-VIBETERM_USERNAME=myuser          # Username (for env-based auth, not CLI)
-VIBETERM_PASSWORD=mypass          # Password (for env-based auth, not CLI)
-VIBETERM_CONTROL_DIR=/path        # Control directory for session data
-VIBETERM_SESSION_ID=abc123        # Current session ID (set automatically inside sessions)
-VIBETERM_LOG_LEVEL=debug          # Log level: error, warn, info, verbose, debug
+VIBETMUX_USERNAME=myuser          # Username (for env-based auth, not CLI)
+VIBETMUX_PASSWORD=mypass          # Password (for env-based auth, not CLI)
+VIBETMUX_CONTROL_DIR=/path        # Control directory for session data
+VIBETMUX_SESSION_ID=abc123        # Current session ID (set automatically inside sessions)
+VIBETMUX_LOG_LEVEL=debug          # Log level: error, warn, info, verbose, debug
 PUSH_CONTACT_EMAIL=admin@example.com # Contact email for VAPID configuration
 ```
 
 ## Tailscale Integration
 
-VibeTerm supports Tailscale Serve and Funnel for secure remote access:
+VibeTmux supports Tailscale Serve and Funnel for secure remote access:
 
 ### Tailscale Serve (Private Access)
 Enable HTTPS access within your Tailnet:
 ```bash
 # Start with Tailscale Serve enabled
-vibeterm --enable-tailscale-serve
+vibetmux --enable-tailscale-serve
 
 # Access via HTTPS within your Tailnet
 https://your-machine-name
@@ -201,7 +201,7 @@ https://your-machine-name
 Enable public internet access with valid SSL certificates:
 ```bash
 # Start with both Serve and Funnel enabled
-vibeterm --enable-tailscale-serve --enable-tailscale-funnel
+vibetmux --enable-tailscale-serve --enable-tailscale-funnel
 
 # Access from anywhere on the internet
 https://your-machine-name.tail-scale.ts.net
@@ -225,7 +225,7 @@ https://your-machine-name.tail-scale.ts.net
 
 ### Git Worktree Integration
 
-VibeTerm provides comprehensive Git worktree support, allowing you to:
+VibeTmux provides comprehensive Git worktree support, allowing you to:
 - Work on multiple branches simultaneously without stashing changes
 - Create new worktrees directly from the session creation dialog
 - Smart branch switching with uncommitted change detection
@@ -237,8 +237,8 @@ For detailed information, see the [Git Worktree Management Guide](docs/worktree.
 ## Package Contents
 
 This npm package includes:
-- Full VibeTerm server with web UI
-- Command-line tools (vibeterm, vt)
+- Full VibeTmux server with web UI
+- Command-line tools (vibetmux, vt)
 - Native PTY support for terminal emulation
 - Web interface with ghostty-web
 - Session management and forwarding
@@ -248,7 +248,7 @@ This npm package includes:
 
 - macOS (Intel and Apple Silicon)
 - Linux (x64 and ARM64)
-- Windows: Not yet supported ([#252](https://github.com/amantus-ai/vibeterm/issues/252))
+- Windows: Not yet supported ([#252](https://github.com/amantus-ai/vibetmux/issues/252))
 
 ## Troubleshooting
 
@@ -267,7 +267,7 @@ If you encounter issues during installation:
 
 2. **Permission Issues**: Use sudo for global installation
    ```bash
-   sudo npm install -g vibeterm
+   sudo npm install -g vibetmux
    ```
 
 3. **Node Version**: Ensure Node.js 20+ is installed
@@ -294,7 +294,7 @@ Modern browsers (Chrome 60+, Firefox 75+) block the Web Crypto API when accessin
 
 1. **Use localhost (Recommended)**
    ```bash
-   # Access VibeTerm via localhost
+   # Access VibeTmux via localhost
    http://localhost:4020
    
    # If running on a remote server, use SSH tunneling:
@@ -312,7 +312,7 @@ Modern browsers (Chrome 60+, Firefox 75+) block the Web Crypto API when accessin
    - ⚠️ This reduces security - use only for development
 
 #### Why This Happens
-The Web Crypto API is restricted to secure contexts (HTTPS or localhost) to prevent man-in-the-middle attacks on cryptographic operations. This is a browser security feature, not a VibeTerm limitation.
+The Web Crypto API is restricted to secure contexts (HTTPS or localhost) to prevent man-in-the-middle attacks on cryptographic operations. This is a browser security feature, not a VibeTmux limitation.
 
 ### Development Setup
 
@@ -333,7 +333,7 @@ pnpm run build
 
 ## Documentation
 
-See the main repository for complete documentation: https://github.com/amantus-ai/vibeterm
+See the main repository for complete documentation: https://github.com/amantus-ai/vibetmux
 
 ## License
 

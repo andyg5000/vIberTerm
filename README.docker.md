@@ -1,4 +1,4 @@
-# VibeTerm Docker Usage
+# VibeTmux Docker Usage
 
 Perfect for containerized development and instant terminal access to your code.
 
@@ -6,16 +6,16 @@ Perfect for containerized development and instant terminal access to your code.
 
 ```bash
 # Build the image
-docker build -f Dockerfile.standalone -t vibeterm .
+docker build -f Dockerfile.standalone -t vibetmux .
 
 # Mount your code and get instant tunnel access
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 ```
 
 ## 📂 How It Works
 
 1. **Your code** gets mounted to `/workspace` in the container
-2. **VibeTerm** starts with full dev tools (git, vim, nano, htop, etc.)
+2. **VibeTmux** starts with full dev tools (git, vim, nano, htop, etc.)
 3. **Terminal access** via web browser at the tunnel URL
 4. **All changes** persist to your local filesystem
 
@@ -24,25 +24,25 @@ docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
 ### Ngrok (Most Popular)
 ```bash
 # Basic ngrok tunnel
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 
 # With auth token for reliability
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok --ngrok-auth YOUR_TOKEN
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok --ngrok-auth YOUR_TOKEN
 
 # Custom domain (paid plan)
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok --ngrok-domain custom.ngrok.io
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok --ngrok-domain custom.ngrok.io
 ```
 
 ### Cloudflare Quick Tunnel (No Auth Required)
 ```bash
 # Free Cloudflare tunnel - no signup needed!
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --cloudflare
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --cloudflare
 ```
 
 ### Local Development (No Tunnel)
 ```bash
 # Local only - no internet access
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --no-auth
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --no-auth
 # Access at http://localhost:4020
 ```
 
@@ -52,7 +52,7 @@ docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --no-auth
 Work on any machine and access via tunnel:
 ```bash
 # On any server
-docker run -v /home/user/project:/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v /home/user/project:/workspace -p 4020:4020 vibetmux --ngrok
 # Share URL with team for collaboration
 ```
 
@@ -66,7 +66,7 @@ services:
       - ./:/app
   
   terminal:
-    image: vibeterm:latest
+    image: vibetmux:latest
     command: ["--cloudflare"]
     ports:
       - "4020:4020"
@@ -88,7 +88,7 @@ spec:
     - name: code
       mountPath: /app
   - name: terminal
-    image: vibeterm:latest
+    image: vibetmux:latest
     args: ["--cloudflare"]
     ports:
     - containerPort: 4020
@@ -104,7 +104,7 @@ spec:
 ### Teaching & Workshops
 ```bash
 # Instructor shares live coding environment
-docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 # Students access via shared URL - no setup required!
 ```
 
@@ -119,7 +119,7 @@ docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
 
 ### Smart Entrypoint
 - Shows helpful usage if no args provided
-- Passes all arguments to VibeTerm
+- Passes all arguments to VibeTmux
 - Automatically binds to 0.0.0.0 for container access
 
 ### Environment

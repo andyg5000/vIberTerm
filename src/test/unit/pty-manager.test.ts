@@ -460,7 +460,7 @@ describe.skip('PtyManager', { timeout: 60000 }, () => {
   });
 
   // REMOVED: Shutdown tests that would kill all sessions including test runner's own session
-  // These tests are dangerous when running inside VibeTerm as they would terminate
+  // These tests are dangerous when running inside VibeTmux as they would terminate
   // the test runner itself. Use SessionTestHelper instead for proper cleanup.
 
   describe('Control Pipe', { timeout: 10000 }, () => {

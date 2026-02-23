@@ -33,7 +33,7 @@ const DEFAULT_PREFERENCES: TerminalPreferences = {
   theme: 'dracula',
 };
 
-const STORAGE_KEY_TERMINAL_PREFS = 'vibeterm_terminal_preferences';
+const STORAGE_KEY_TERMINAL_PREFS = 'vibetmux_terminal_preferences';
 
 export class TerminalPreferencesManager {
   private static instance: TerminalPreferencesManager;

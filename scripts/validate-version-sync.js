@@ -11,7 +11,7 @@ if (process.env.VT_SKIP_VERSION_SYNC === '1') {
 }
 
 // Path to the xcconfig file
-const xcconfigPath = path.join(__dirname, '../../mac/VibeTerm/version.xcconfig');
+const xcconfigPath = path.join(__dirname, '../../mac/VibeTmux/version.xcconfig');
 
 // Check if xcconfig file exists (optional - not present in standalone/forked builds)
 if (!fs.existsSync(xcconfigPath)) {
@@ -38,7 +38,7 @@ if (version !== xconfigVersion) {
   console.error('');
   console.error('To fix this:');
   console.error('1. Update package.json version field to match xcconfig');
-  console.error('2. Or update MARKETING_VERSION in mac/VibeTerm/version.xcconfig');
+  console.error('2. Or update MARKETING_VERSION in mac/VibeTmux/version.xcconfig');
   process.exit(1);
 }
 

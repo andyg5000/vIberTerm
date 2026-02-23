@@ -112,7 +112,7 @@ temp/
 release-check/
 
 # Terminal session data (don't commit user sessions)
-~/.vibetunnel/
+~/.vibetmux/
 
 # Lint output files
 lint_output.txt
@@ -162,7 +162,7 @@ temp-spawn-helper/
 package/
 
 # Docker test files (moved to scripts/)
-test-vibetunnel*.dockerfile
+test-vibetmux*.dockerfile
 
 # SSL Certificates and Keys (NEVER commit these!)
 *.crt

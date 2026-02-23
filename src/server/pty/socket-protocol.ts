@@ -1,5 +1,5 @@
 /**
- * Unix socket protocol for VibeTerm IPC
+ * Unix socket protocol for VibeTmux IPC
  *
  * Message format (binary):
  * [1 byte: message type]

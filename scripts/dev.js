@@ -157,9 +157,9 @@ async function startBuilding() {
 
     // Start other processes
     const processes = commands.map(([cmd, args], index) => {
-      // Create env without VIBETERM_SEA for development mode
+      // Create env without VIBETMUX_SEA for development mode
       const env = { ...process.env };
-      delete env.VIBETERM_SEA;
+      delete env.VIBETMUX_SEA;
       
       const proc = spawn(cmd, args, { 
         stdio: 'inherit',

@@ -199,8 +199,8 @@ test.describe('Session Navigation', () => {
       await backButton.click();
       await expect(page).toHaveURL('/');
     } else {
-      // In sidebar view, click on VibeTerm header to go home
-      const homeButton = page.locator('button').filter({ hasText: 'VibeTerm' }).first();
+      // In sidebar view, click on VibeTmux header to go home
+      const homeButton = page.locator('button').filter({ hasText: 'VibeTmux' }).first();
       await homeButton.click();
       await expect(page).toHaveURL('/');
     }

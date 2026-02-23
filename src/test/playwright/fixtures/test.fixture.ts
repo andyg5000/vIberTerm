@@ -78,15 +78,15 @@ export const test = base.extend<TestFixtures>({
 
           // IMPORTANT: Set spawn window to false by default for tests
           // This ensures sessions are created as web sessions, not native terminals
-          localStorage.setItem('vibeterm_spawn_window', 'false');
+          localStorage.setItem('vibetmux_spawn_window', 'false');
 
           // Clear any saved command to ensure tests use the default
-          localStorage.removeItem('vibeterm_last_command');
-          localStorage.removeItem('vibeterm_last_working_dir');
+          localStorage.removeItem('vibetmux_last_command');
+          localStorage.removeItem('vibetmux_last_working_dir');
 
           // Clear IndexedDB if present
           if (typeof indexedDB !== 'undefined' && indexedDB.deleteDatabase) {
-            indexedDB.deleteDatabase('vibeterm-offline').catch(() => {});
+            indexedDB.deleteDatabase('vibetmux-offline').catch(() => {});
           }
         })
         .catch(() => {});
@@ -115,7 +115,7 @@ export const test = base.extend<TestFixtures>({
       }
 
       // Wait for the app to be attached (fast)
-      await page.waitForSelector('vibeterm-app', { state: 'attached', timeout: 5000 });
+      await page.waitForSelector('vibetmux-app', { state: 'attached', timeout: 5000 });
 
       // For no-auth mode, wait for session list; for auth mode, wait for login
       try {

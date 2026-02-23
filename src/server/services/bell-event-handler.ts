@@ -118,7 +118,7 @@ export class BellEventHandler {
       processName && processName !== 'shell'
         ? `${processDescription} in ${sessionName} triggered a bell`
         : `${sessionName} triggered a bell`;
-    const tag = `vibeterm-bell-${context.sessionInfo.id}`;
+    const tag = `vibetmux-bell-${context.sessionInfo.id}`;
 
     return {
       type: 'bell-event',

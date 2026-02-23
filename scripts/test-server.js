@@ -7,8 +7,8 @@ const fs = require('fs');
 
 const projectRoot = path.join(__dirname, '..');
 
-// Check if we're in VIBETERM_SEA mode and have the native executable
-const nativeExecutable = path.join(projectRoot, 'native/vibeterm');
+// Check if we're in VIBETMUX_SEA mode and have the native executable
+const nativeExecutable = path.join(projectRoot, 'native/vibetmux');
 const distCliPath = path.join(projectRoot, 'dist/cli.js');
 let cliPath;
 let useNode = true;
@@ -88,8 +88,8 @@ function isClientUpToDate() {
   }
 }
 
-if (process.env.VIBETERM_SEA === 'true' && fs.existsSync(nativeExecutable)) {
-  console.log('Using native executable for tests (VIBETERM_SEA mode)');
+if (process.env.VIBETMUX_SEA === 'true' && fs.existsSync(nativeExecutable)) {
+  console.log('Using native executable for tests (VIBETMUX_SEA mode)');
   cliPath = nativeExecutable;
   useNode = false;
 } else if (fs.existsSync(distCliPath)) {
@@ -226,7 +226,7 @@ const child = spawn(command, args, {
   env: {
     ...process.env,
     // Ensure we're not in SEA mode for tests (unless we're already using the native executable)
-    VIBETERM_SEA: useNode ? '' : 'true',
+    VIBETMUX_SEA: useNode ? '' : 'true',
     PORT: port.toString()
   }
 });

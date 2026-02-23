@@ -1,10 +1,10 @@
 {
-  "name": "vibeterm",
+  "name": "vibetmux",
   "version": "0.1.0",
   "description": "Web-based terminal manager for Linux with tmux-backed tab/pane system",
   "main": "dist/server/server.js",
   "bin": {
-    "vibeterm": "./bin/vibeterm"
+    "vibetmux": "./bin/vibetmux"
   },
   "files": [
     "dist/",

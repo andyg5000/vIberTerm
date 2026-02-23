@@ -461,7 +461,7 @@ export class LifecycleEventManager extends ManagerEventEmitter {
           previousKeyboardHeight <= KEYBOARD_VISIBLE_THRESHOLD
         ) {
           window.dispatchEvent(
-            new CustomEvent('vibeterm:keyboard-shown', {
+            new CustomEvent('vibetmux:keyboard-shown', {
               detail: { height: keyboardHeight },
             })
           );
@@ -470,7 +470,7 @@ export class LifecycleEventManager extends ManagerEventEmitter {
           previousKeyboardHeight > KEYBOARD_VISIBLE_THRESHOLD
         ) {
           window.dispatchEvent(
-            new CustomEvent('vibeterm:keyboard-hidden', {
+            new CustomEvent('vibetmux:keyboard-hidden', {
               detail: { height: 0 },
             })
           );

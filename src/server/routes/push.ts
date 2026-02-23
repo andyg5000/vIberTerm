@@ -152,10 +152,10 @@ export function createPushRoutes(options: CreatePushRoutesOptions): Router {
       const result = await pushNotificationService.sendNotification({
         type: 'test',
         title: '🔔 Test Notification',
-        body: message || 'This is a test notification from VibeTerm',
+        body: message || 'This is a test notification from VibeTmux',
         icon: '/apple-touch-icon.png',
         badge: '/favicon-32.png',
-        tag: 'vibeterm-test',
+        tag: 'vibetmux-test',
         requireInteraction: false,
         actions: [
           {
@@ -172,9 +172,9 @@ export function createPushRoutes(options: CreatePushRoutesOptions): Router {
           sessionId: 'test-session',
           sessionName: 'Test Notification',
           timestamp: new Date().toISOString(),
-          message: message || 'This is a test notification from VibeTerm',
+          message: message || 'This is a test notification from VibeTmux',
           title: '🔔 Test Notification',
-          body: message || 'This is a test notification from VibeTerm',
+          body: message || 'This is a test notification from VibeTmux',
         };
         sessionMonitor.emit('notification', testEvent);
         logger.info('✅ Test notification also emitted through events');

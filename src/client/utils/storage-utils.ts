@@ -7,10 +7,10 @@ const logger = createLogger('storage-utils');
  * Storage keys for session creation form
  */
 export const SESSION_FORM_STORAGE_KEYS = {
-  WORKING_DIR: 'vibeterm_last_working_dir',
-  COMMAND: 'vibeterm_last_command',
-  SPAWN_WINDOW: 'vibeterm_spawn_window',
-  TITLE_MODE: 'vibeterm_title_mode',
+  WORKING_DIR: 'vibetmux_last_working_dir',
+  COMMAND: 'vibetmux_last_command',
+  SPAWN_WINDOW: 'vibetmux_spawn_window',
+  TITLE_MODE: 'vibetmux_title_mode',
 } as const;
 
 /**

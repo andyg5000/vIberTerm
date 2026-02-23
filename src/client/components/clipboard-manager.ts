@@ -51,7 +51,7 @@ export class ClipboardManager extends LitElement {
 
   private readonly MAX_HISTORY_ITEMS = 20;
   private readonly MAX_PREVIEW_LENGTH = 200;
-  private readonly STORAGE_KEY = 'vibeterm-clipboard-history';
+  private readonly STORAGE_KEY = 'vibetmux-clipboard-history';
 
   connectedCallback() {
     super.connectedCallback();

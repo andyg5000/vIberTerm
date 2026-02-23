@@ -54,7 +54,7 @@ describe('postinstall vt installation', () => {
 
       expect(result).toBe(false);
       expect(consoleWarnSpy).toHaveBeenCalledWith('⚠️  vt command script not found in package');
-      expect(consoleLogSpy).toHaveBeenCalledWith('   Use "vibeterm" command instead');
+      expect(consoleLogSpy).toHaveBeenCalledWith('   Use "vibetmux" command instead');
 
       consoleWarnSpy.mockRestore();
       consoleLogSpy.mockRestore();

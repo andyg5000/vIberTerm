@@ -1,4 +1,4 @@
-# VibeTerm Standalone Server Docker Image
+# VibeTmux Standalone Server Docker Image
 # Mount your code and get instant web terminal access with tunnels
 
 FROM node:24-trixie-slim
@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /bin/dash /bin/sh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Zig (latest stable) for vibeterm-fwd build
+# Install Zig (latest stable) for vibetmux-fwd build
 SHELL ["/bin/bash", "-c"]
 ARG ZIG_VERSION=0.15.2
 RUN set -euo pipefail; \
@@ -59,7 +59,7 @@ RUN curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/c
 # Install common dev tools
 RUN npm install -g pnpm typescript ts-node nodemon
 
-# Set working directory for VibeTerm
+# Set working directory for VibeTmux
 WORKDIR /app
 
 # Copy package files
@@ -79,8 +79,8 @@ COPY . .
 ARG VT_FWD_REF
 RUN if [ ! -d /app/native/vt-fwd ]; then \
       ref="${VT_FWD_REF:-v$(node -p "require('./package.json').version")}"; \
-      git clone --depth 1 --filter=blob:none --sparse --branch "$ref" https://github.com/amantus-ai/vibeterm.git /tmp/vt-src \
-        || git clone --depth 1 --filter=blob:none --sparse https://github.com/amantus-ai/vibeterm.git /tmp/vt-src; \
+      git clone --depth 1 --filter=blob:none --sparse --branch "$ref" https://github.com/amantus-ai/vibetmux.git /tmp/vt-src \
+        || git clone --depth 1 --filter=blob:none --sparse https://github.com/amantus-ai/vibetmux.git /tmp/vt-src; \
       git -C /tmp/vt-src sparse-checkout set native/vt-fwd; \
       mkdir -p /app/native; \
       cp -R /tmp/vt-src/native/vt-fwd /app/native/vt-fwd; \
@@ -109,19 +109,19 @@ RUN cat <<'EOF' > /entrypoint.sh
 set -e
 # If no arguments provided, show usage
 if [ $# -eq 0 ]; then
-  echo "VibeTerm Docker Container"
-  echo "Usage: docker run -v /path/to/code:/workspace -p 4020:4020 vibeterm [OPTIONS]"
+  echo "VibeTmux Docker Container"
+  echo "Usage: docker run -v /path/to/code:/workspace -p 4020:4020 vibetmux [OPTIONS]"
   echo ""
   echo "Examples:"
-  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibeterm --ngrok"
-  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibeterm --cloudflare"
-  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibeterm --no-auth --ngrok"
+  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibetmux --ngrok"
+  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibetmux --cloudflare"
+  echo "  docker run -v \$(pwd):/workspace -p 4020:4020 vibetmux --no-auth --ngrok"
   echo ""
   echo "Your code will be available at /workspace in the terminal"
   echo "Access via browser at http://localhost:4020 or the tunnel URL"
   exit 1
 fi
-# Start VibeTerm with all provided arguments
+# Start VibeTmux with all provided arguments
 exec node /app/dist/cli.js --bind 0.0.0.0 "$@"
 EOF
 RUN chmod +x /entrypoint.sh
@@ -134,22 +134,22 @@ CMD ["--no-auth"]
 # Example Usage:
 #
 # Build the image:
-# docker build -f Dockerfile.standalone -t vibeterm .
+# docker build -f Dockerfile.standalone -t vibetmux .
 #
 # Mount your code and run with ngrok:
-# docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok
+# docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok
 #
 # With Cloudflare tunnel:
-# docker run -v /path/to/project:/workspace -p 4020:4020 vibeterm --cloudflare
+# docker run -v /path/to/project:/workspace -p 4020:4020 vibetmux --cloudflare
 #
 # With ngrok auth token:
-# docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --ngrok --ngrok-auth YOUR_TOKEN
+# docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --ngrok --ngrok-auth YOUR_TOKEN
 #
 # Local development (no tunnel):
-# docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --no-auth
+# docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --no-auth
 #
 # With authentication:
-# docker run -v $(pwd):/workspace -p 4020:4020 vibeterm --enable-ssh-keys
+# docker run -v $(pwd):/workspace -p 4020:4020 vibetmux --enable-ssh-keys
 #
 # Your mounted code will be available at /workspace in the terminal
 # Access via http://localhost:4020 or the tunnel URL

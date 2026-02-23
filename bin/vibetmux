@@ -1,4 +1,4 @@
 #!/usr/bin/env node
 
 // Start the CLI
-require('../dist/vibeterm-cli');
+require('../dist/vibetmux-cli');

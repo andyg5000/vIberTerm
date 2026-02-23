@@ -69,7 +69,7 @@ describeTmux('Tmux integration (E2E)', () => {
         HOME: homeDir,
         TMUX_TMPDIR: tmuxTmpDir,
       },
-      controlDir: path.join(homeDir, '.vibeterm', 'control'),
+      controlDir: path.join(homeDir, '.vibetmux', 'control'),
       waitForHealth: true,
     });
   });

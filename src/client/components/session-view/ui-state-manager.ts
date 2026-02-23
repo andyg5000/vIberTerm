@@ -284,7 +284,7 @@ export class UIStateManager {
   // Load preferences
   loadDirectKeyboardPreference(): void {
     try {
-      const stored = localStorage.getItem('vibeterm_app_preferences');
+      const stored = localStorage.getItem('vibetmux_app_preferences');
       if (stored) {
         const preferences = JSON.parse(stored);
         this.state.useDirectKeyboard = preferences.useDirectKeyboard ?? true; // Default to true

@@ -67,8 +67,8 @@ console.log('Native modules are ready for tests');
 
 // Ensure zig forwarder exists (required now that Node forwarder is removed)
 const webRoot = path.join(__dirname, '..');
-const nativeForwarderPath = path.join(webRoot, 'native', 'vibeterm-fwd');
-const binForwarderPath = path.join(webRoot, 'bin', 'vibeterm-fwd');
+const nativeForwarderPath = path.join(webRoot, 'native', 'vibetmux-fwd');
+const binForwarderPath = path.join(webRoot, 'bin', 'vibetmux-fwd');
 
 if (!fs.existsSync(nativeForwarderPath) || !fs.existsSync(binForwarderPath)) {
   console.log('zig forwarder not found, building...');
@@ -76,7 +76,7 @@ if (!fs.existsSync(nativeForwarderPath) || !fs.existsSync(binForwarderPath)) {
   try {
     execSync('zig version', { stdio: 'ignore' });
   } catch (_e) {
-    console.error('zig is required to build vibeterm-fwd but was not found in PATH');
+    console.error('zig is required to build vibetmux-fwd but was not found in PATH');
     console.error('Install zig, then run: node scripts/build-fwd-zig.js');
     process.exit(1);
   }

@@ -1,4 +1,4 @@
-// UI Constants for VibeTerm
+// UI Constants for VibeTmux
 
 export const BREAKPOINTS = {
   MOBILE: 768,

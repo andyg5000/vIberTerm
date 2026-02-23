@@ -102,8 +102,8 @@ export class AuthService {
   async authenticateWithPassword(userId: string, password: string): Promise<AuthResult> {
     try {
       // Check environment variables first (for testing and simple deployments)
-      const envUsername = process.env.VIBETERM_USERNAME;
-      const envPassword = process.env.VIBETERM_PASSWORD;
+      const envUsername = process.env.VIBETMUX_USERNAME;
+      const envPassword = process.env.VIBETMUX_PASSWORD;
 
       if (envUsername && envPassword) {
         // Use environment variable authentication

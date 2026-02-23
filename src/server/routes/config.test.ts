@@ -2,7 +2,7 @@ import type { Express } from 'express';
 import express from 'express';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { QuickStartCommand, VibeTermConfig } from '../../types/config.js';
+import type { QuickStartCommand, VibeTmuxConfig } from '../../types/config.js';
 import type { ConfigService } from '../services/config-service.js';
 import { createConfigRoutes } from './config.js';
 
@@ -10,7 +10,7 @@ describe('Config Routes', () => {
   let app: Express;
   let mockConfigService: ConfigService;
 
-  const defaultConfig: VibeTermConfig = {
+  const defaultConfig: VibeTmuxConfig = {
     version: 1,
     repositoryBasePath: '/home/user/repos',
     quickStartCommands: [
@@ -33,7 +33,7 @@ describe('Config Routes', () => {
       startWatching: vi.fn(),
       stopWatching: vi.fn(),
       onConfigChange: vi.fn(),
-      getConfigPath: vi.fn(() => '/home/user/.vibeterm/config.json'),
+      getConfigPath: vi.fn(() => '/home/user/.vibetmux/config.json'),
       getNotificationPreferences: vi.fn(),
       updateNotificationPreferences: vi.fn(),
     } as unknown as ConfigService;

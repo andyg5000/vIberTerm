@@ -66,9 +66,9 @@ if [ -f "$PACKAGE_JSON" ]; then
 fi
 
 # Test 7: Basic functionality test (help command)
-# Skip if already inside a VibeTerm session (recursive sessions not supported)
-if [ -n "$VIBETERM_SESSION_ID" ]; then
-    echo "⚠️  Skipping vt --help test (already inside VibeTerm session)"
+# Skip if already inside a VibeTmux session (recursive sessions not supported)
+if [ -n "$VIBETMUX_SESSION_ID" ]; then
+    echo "⚠️  Skipping vt --help test (already inside VibeTmux session)"
 else
     # Use gtimeout if available, otherwise skip timeout
     if command -v gtimeout >/dev/null 2>&1; then

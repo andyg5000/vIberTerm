@@ -1,6 +1,6 @@
 {
-  "name": "VibeTerm",
-  "short_name": "VibeTerm",
+  "name": "VibeTmux",
+  "short_name": "VibeTmux",
   "description": "Interactive terminal sessions in your browser with real-time streaming and mobile support",
   "start_url": "/",
   "display": "standalone",

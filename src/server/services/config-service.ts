@@ -8,7 +8,7 @@ import {
   DEFAULT_CONFIG,
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
-  type VibeTermConfig,
+  type VibeTmuxConfig,
 } from '../../types/config.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -79,10 +79,10 @@ const ConfigSchema = z.object({
 });
 
 /**
- * Service for managing VibeTerm configuration with file persistence and live reloading.
+ * Service for managing VibeTmux configuration with file persistence and live reloading.
  *
- * The ConfigService handles loading, saving, and watching the VibeTerm configuration file
- * stored in the user's home directory at `~/.vibeterm/config.json`. It provides validation
+ * The ConfigService handles loading, saving, and watching the VibeTmux configuration file
+ * stored in the user's home directory at `~/.vibetmux/config.json`. It provides validation
  * using Zod schemas, automatic file watching for live reloading, and event-based notifications
  * when configuration changes occur.
  *
@@ -122,12 +122,12 @@ const ConfigSchema = z.object({
 export class ConfigService {
   private configDir: string;
   private configPath: string;
-  private config: VibeTermConfig = DEFAULT_CONFIG;
+  private config: VibeTmuxConfig = DEFAULT_CONFIG;
   private watcher?: FSWatcher;
-  private configChangeCallbacks: Set<(config: VibeTermConfig) => void> = new Set();
+  private configChangeCallbacks: Set<(config: VibeTmuxConfig) => void> = new Set();
 
   constructor() {
-    this.configDir = path.join(os.homedir(), '.vibeterm');
+    this.configDir = path.join(os.homedir(), '.vibetmux');
     this.configPath = path.join(this.configDir, 'config.json');
     this.loadConfig();
   }
@@ -143,7 +143,7 @@ export class ConfigService {
     }
   }
 
-  private validateConfig(data: unknown): VibeTermConfig {
+  private validateConfig(data: unknown): VibeTmuxConfig {
     try {
       return ConfigSchema.parse(data);
     } catch (error) {
@@ -251,7 +251,7 @@ export class ConfigService {
     }
   }
 
-  public onConfigChange(callback: (config: VibeTermConfig) => void): () => void {
+  public onConfigChange(callback: (config: VibeTmuxConfig) => void): () => void {
     this.configChangeCallbacks.add(callback);
     // Return unsubscribe function
     return () => {
@@ -259,18 +259,18 @@ export class ConfigService {
     };
   }
 
-  public getConfig(): VibeTermConfig {
+  public getConfig(): VibeTmuxConfig {
     return this.config;
   }
 
-  public updateConfig(config: VibeTermConfig): void {
+  public updateConfig(config: VibeTmuxConfig): void {
     // Validate the config before updating
     this.config = this.validateConfig(config);
     this.saveConfig();
     this.notifyConfigChange();
   }
 
-  public updateQuickStartCommands(commands: VibeTermConfig['quickStartCommands']): void {
+  public updateQuickStartCommands(commands: VibeTmuxConfig['quickStartCommands']): void {
     // Validate the entire config with updated commands
     const updatedConfig = { ...this.config, quickStartCommands: commands };
     this.config = this.validateConfig(updatedConfig);

@@ -124,7 +124,7 @@ async def main():
     "dev": "vite"
   },
   "keywords": ["monaco", "editor", "test"],
-  "author": "VibeTerm Team",
+  "author": "VibeTmux Team",
   "license": "MIT"
 }`,
   };

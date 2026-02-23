@@ -14,11 +14,11 @@ import {
 
 function resolveForwarderPath(): string {
   const candidates: string[] = [];
-  if (process.env.VIBETERM_FWD_BIN) {
-    candidates.push(process.env.VIBETERM_FWD_BIN);
+  if (process.env.VIBETMUX_FWD_BIN) {
+    candidates.push(process.env.VIBETMUX_FWD_BIN);
   }
-  candidates.push(path.join(process.cwd(), 'native', 'vibeterm-fwd'));
-  candidates.push(path.join(process.cwd(), 'bin', 'vibeterm-fwd'));
+  candidates.push(path.join(process.cwd(), 'native', 'vibetmux-fwd'));
+  candidates.push(path.join(process.cwd(), 'bin', 'vibetmux-fwd'));
 
   for (const candidate of candidates) {
     if (candidate && existsSync(candidate)) {
@@ -28,7 +28,7 @@ function resolveForwarderPath(): string {
   }
 
   throw new Error(
-    `vibeterm-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
+    `vibetmux-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
   );
 }
 
@@ -167,11 +167,11 @@ describe('Forwarder E2E', () => {
 
   beforeAll(async () => {
     homeDir = createShortHomeDir();
-    controlDir = path.join(homeDir, '.vibeterm', 'control');
+    controlDir = path.join(homeDir, '.vibetmux', 'control');
 
     server = await startTestServer({
       args: ['--port', '0', '--no-auth'],
-      env: { VIBETERM_CONTROL_DIR: controlDir },
+      env: { VIBETMUX_CONTROL_DIR: controlDir },
       waitForHealth: true,
     });
   });

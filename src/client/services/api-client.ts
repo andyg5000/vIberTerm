@@ -16,7 +16,7 @@ interface ErrorResponse {
 }
 
 /**
- * HTTP client for making authenticated API requests to the VibeTerm backend.
+ * HTTP client for making authenticated API requests to the VibeTmux backend.
  * Automatically includes authentication headers and handles error responses.
  */
 class ApiClient {

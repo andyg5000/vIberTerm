@@ -470,12 +470,12 @@ export class PushNotificationService {
           // Show notification if we have permission
           if (this.serviceWorkerRegistration && this.getPermission() === 'granted') {
             await this.serviceWorkerRegistration.showNotification(
-              event.title || 'VibeTerm Test',
+              event.title || 'VibeTmux Test',
               {
                 body: event.body || 'Test notification received!',
                 icon: '/apple-touch-icon.png',
                 badge: '/favicon-32.png',
-                tag: 'vibeterm-test',
+                tag: 'vibetmux-test',
                 requireInteraction: false,
               }
             );
@@ -515,7 +515,7 @@ export class PushNotificationService {
   }
 
   /**
-   * Clear all VibeTerm notifications
+   * Clear all VibeTmux notifications
    */
   async clearAllNotifications(): Promise<void> {
     if (!this.serviceWorkerRegistration) {
@@ -526,7 +526,7 @@ export class PushNotificationService {
       const notifications = await this.serviceWorkerRegistration.getNotifications();
 
       for (const notification of notifications) {
-        if (notification.tag?.startsWith('vibeterm-')) {
+        if (notification.tag?.startsWith('vibetmux-')) {
           notification.close();
         }
       }
@@ -782,7 +782,7 @@ export class PushNotificationService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: message || 'Test notification from VibeTerm',
+          message: message || 'Test notification from VibeTmux',
         }),
       });
 
@@ -835,11 +835,11 @@ export class PushNotificationService {
 
     try {
       // Show notification directly
-      await this.serviceWorkerRegistration.showNotification('VibeTerm Notifications Active', {
+      await this.serviceWorkerRegistration.showNotification('VibeTmux Notifications Active', {
         body: "You'll receive notifications for session events",
         icon: '/apple-touch-icon.png',
         badge: '/favicon-32.png',
-        tag: 'vibeterm-welcome',
+        tag: 'vibetmux-welcome',
         requireInteraction: false,
         silent: false,
       });

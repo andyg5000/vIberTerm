@@ -35,11 +35,11 @@ const itWithGit = hasGit ? it : it.skip;
 
 function resolveForwarderPath(): string {
   const candidates: string[] = [];
-  if (process.env.VIBETERM_FWD_BIN) {
-    candidates.push(process.env.VIBETERM_FWD_BIN);
+  if (process.env.VIBETMUX_FWD_BIN) {
+    candidates.push(process.env.VIBETMUX_FWD_BIN);
   }
-  candidates.push(path.join(process.cwd(), 'native', 'vibeterm-fwd'));
-  candidates.push(path.join(process.cwd(), 'bin', 'vibeterm-fwd'));
+  candidates.push(path.join(process.cwd(), 'native', 'vibetmux-fwd'));
+  candidates.push(path.join(process.cwd(), 'bin', 'vibetmux-fwd'));
 
   for (const candidate of candidates) {
     if (candidate && existsSync(candidate)) {
@@ -49,7 +49,7 @@ function resolveForwarderPath(): string {
   }
 
   throw new Error(
-    `vibeterm-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
+    `vibetmux-fwd not found. Run: node scripts/build-fwd-zig.js (cwd: ${process.cwd()})`
   );
 }
 
@@ -57,10 +57,10 @@ function createShortHomeDir(): string {
   return mkdtempSync(path.join('/tmp', 'vth-'));
 }
 
-function createVibetermCliWrapper(homeDir: string): string {
+function createVibetmuxCliWrapper(homeDir: string): string {
   const cliPath = path.join(process.cwd(), 'src', 'cli.ts');
   const wrapperDir = path.join(homeDir, 'bin');
-  const wrapperPath = path.join(wrapperDir, 'vibeterm');
+  const wrapperPath = path.join(wrapperDir, 'vibetmux');
 
   mkdirSync(wrapperDir, { recursive: true });
   writeFileSync(wrapperPath, `#!/usr/bin/env bash\nexec tsx "${cliPath}" "$@"\n`, 'utf-8');
@@ -159,16 +159,16 @@ describe('vt wrapper flows', () => {
   let server: ServerInstance | null = null;
   let homeDir = '';
   let controlDir = '';
-  let vibetermBin = '';
+  let vibetmuxBin = '';
 
   beforeAll(async () => {
     homeDir = createShortHomeDir();
-    controlDir = path.join(homeDir, '.vibeterm', 'control');
-    vibetermBin = createVibetermCliWrapper(homeDir);
+    controlDir = path.join(homeDir, '.vibetmux', 'control');
+    vibetmuxBin = createVibetmuxCliWrapper(homeDir);
 
     server = await startTestServer({
       args: ['--port', '0', '--no-auth'],
-      env: { VIBETERM_CONTROL_DIR: controlDir },
+      env: { VIBETMUX_CONTROL_DIR: controlDir },
       waitForHealth: true,
     });
 
@@ -184,7 +184,7 @@ describe('vt wrapper flows', () => {
     }
   });
 
-  it('runs via vibeterm fwd wrapper (tsx cli.ts)', async () => {
+  it('runs via vibetmux fwd wrapper (tsx cli.ts)', async () => {
     const forwarderPath = resolveForwarderPath();
     const sessionId = `fwd_${Date.now()}`;
     const marker = `cli-fwd-ok-${Date.now()}`;
@@ -202,8 +202,8 @@ describe('vt wrapper flows', () => {
         env: {
           ...process.env,
           HOME: homeDir,
-          VIBETERM_CONTROL_DIR: controlDir,
-          VIBETERM_FWD_BIN: forwarderPath,
+          VIBETMUX_CONTROL_DIR: controlDir,
+          VIBETMUX_FWD_BIN: forwarderPath,
         },
         stdio: 'ignore',
       }
@@ -218,7 +218,7 @@ describe('vt wrapper flows', () => {
       child.on('exit', (code, signal) => {
         if (code !== 0) {
           exitError = new Error(
-            `vibeterm fwd exited with code ${code ?? 'null'} signal ${signal ?? 'null'}`
+            `vibetmux fwd exited with code ${code ?? 'null'} signal ${signal ?? 'null'}`
           );
         }
         resolve();
@@ -249,7 +249,7 @@ describe('vt wrapper flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
+        VIBETMUX_CONTROL_DIR: controlDir,
       },
       stdio: 'ignore',
     });
@@ -283,10 +283,10 @@ describe('vt wrapper flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_SESSION_ID: sessionId,
-        VIBETERM_FWD_BIN: forwarderPath,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_SESSION_ID: sessionId,
+        VIBETMUX_FWD_BIN: forwarderPath,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       stdio: 'ignore',
     });
@@ -339,9 +339,9 @@ describe('vt wrapper flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_FWD_BIN: forwarderPath,
-        VIBETERM_BIN: vibetermBin,
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_FWD_BIN: forwarderPath,
+        VIBETMUX_BIN: vibetmuxBin,
       },
       stdio: 'ignore',
     });
@@ -370,9 +370,9 @@ describe('vt wrapper flows', () => {
       env: {
         ...process.env,
         HOME: homeDir,
-        VIBETERM_CONTROL_DIR: controlDir,
-        VIBETERM_BIN: vibetermBin,
-        VIBETERM_SESSION_ID: 'already-in-session',
+        VIBETMUX_CONTROL_DIR: controlDir,
+        VIBETMUX_BIN: vibetmuxBin,
+        VIBETMUX_SESSION_ID: 'already-in-session',
       },
       stdio: ['ignore', 'ignore', 'pipe'],
     });
@@ -388,7 +388,7 @@ describe('vt wrapper flows', () => {
     });
 
     expect(code).not.toBe(0);
-    expect(stderr.join('')).toContain('Recursive VibeTerm sessions are not supported');
+    expect(stderr.join('')).toContain('Recursive VibeTmux sessions are not supported');
   });
 
   itWithGit(
@@ -401,7 +401,7 @@ describe('vt wrapper flows', () => {
 
       runGit(repoDir, ['init']);
       runGit(repoDir, ['config', 'user.email', 'test@example.com']);
-      runGit(repoDir, ['config', 'user.name', 'VibeTerm Test']);
+      runGit(repoDir, ['config', 'user.name', 'VibeTmux Test']);
       writeFileSync(path.join(repoDir, 'README.md'), `test-${Date.now()}\n`, 'utf-8');
       runGit(repoDir, ['add', 'README.md']);
       runGit(repoDir, ['commit', '-m', 'init']);
@@ -415,37 +415,37 @@ describe('vt wrapper flows', () => {
         env: {
           ...process.env,
           HOME: homeDir,
-          VIBETERM_CONTROL_DIR: controlDir,
-          VIBETERM_BIN: vibetermBin,
+          VIBETMUX_CONTROL_DIR: controlDir,
+          VIBETMUX_BIN: vibetmuxBin,
         },
         encoding: 'utf-8',
       });
       expect(follow.status).toBe(0);
 
-      const followWorktree = runGit(repoDir, ['config', '--local', 'vibeterm.followWorktree']);
+      const followWorktree = runGit(repoDir, ['config', '--local', 'vibetmux.followWorktree']);
       expect(followWorktree.code).toBe(0);
       expect(realpathSync(followWorktree.stdout.trim())).toBe(realpathSync(worktreeDir));
 
       const hooksDir = path.join(repoDir, '.hooks');
       const postCommit = readFileSync(path.join(hooksDir, 'post-commit'), 'utf-8');
       const postCheckout = readFileSync(path.join(hooksDir, 'post-checkout'), 'utf-8');
-      expect(postCommit).toContain('VibeTerm Git hook');
-      expect(postCheckout).toContain('VibeTerm Git hook');
+      expect(postCommit).toContain('VibeTmux Git hook');
+      expect(postCheckout).toContain('VibeTmux Git hook');
 
       const unfollow = spawnSync(vtPath, ['unfollow'], {
         cwd: repoDir,
         env: {
           ...process.env,
           HOME: homeDir,
-          VIBETERM_CONTROL_DIR: controlDir,
-          VIBETERM_BIN: vibetermBin,
+          VIBETMUX_CONTROL_DIR: controlDir,
+          VIBETMUX_BIN: vibetmuxBin,
         },
         encoding: 'utf-8',
       });
       expect(unfollow.status).toBe(0);
       expect(unfollow.stdout).toContain('Disabled follow mode');
 
-      const followAfter = runGit(repoDir, ['config', '--local', 'vibeterm.followWorktree']);
+      const followAfter = runGit(repoDir, ['config', '--local', 'vibetmux.followWorktree']);
       expect(followAfter.code).not.toBe(0);
 
       expect(existsSync(path.join(hooksDir, 'post-commit'))).toBe(false);

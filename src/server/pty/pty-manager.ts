@@ -341,8 +341,8 @@ export class PtyManager extends EventEmitter {
       logger.debug(chalk.blue(`Creating PTY session with command: ${resolvedCommand.join(' ')}`));
       logger.debug(`Working directory: ${workingDir}`);
 
-      // Check if this session is being spawned from within VibeTerm
-      const attachedViaVT = !!process.env.VIBETERM_SESSION_ID;
+      // Check if this session is being spawned from within VibeTmux
+      const attachedViaVT = !!process.env.VIBETMUX_SESSION_ID;
 
       // Create initial session info with resolved command
       const sessionInfo: SessionInfo = {
@@ -402,7 +402,7 @@ export class PtyManager extends EventEmitter {
           ...process.env,
           TERM: term,
           // Set session ID to prevent recursive vt calls and for debugging
-          VIBETERM_SESSION_ID: sessionId,
+          VIBETMUX_SESSION_ID: sessionId,
         };
 
         // Debug log the spawn parameters
@@ -755,7 +755,7 @@ export class PtyManager extends EventEmitter {
     // Create Unix domain socket for all IPC
     // IMPORTANT: macOS has a 104 character limit for Unix socket paths, including null terminator.
     // This means the actual usable path length is 103 characters. To avoid EINVAL errors:
-    // - Use short socket names (e.g., 'ipc.sock' instead of 'vibeterm-ipc.sock')
+    // - Use short socket names (e.g., 'ipc.sock' instead of 'vibetmux-ipc.sock')
     // - Keep session directories as short as possible
     // - Avoid deeply nested directory structures
     const socketPath = path.join(session.controlDir, 'ipc.sock');
@@ -1946,7 +1946,7 @@ export class PtyManager extends EventEmitter {
       newTitle = generateTitleSequence(
         session.currentWorkingDir || session.sessionInfo.workingDir,
         session.sessionInfo.command,
-        session.sessionInfo.name || 'VibeTerm'
+        session.sessionInfo.name || 'VibeTmux'
       );
     } else {
       // For STATIC mode, use the standard generation logic

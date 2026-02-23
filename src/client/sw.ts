@@ -5,8 +5,8 @@
 declare const self: ServiceWorkerGlobalScope;
 export {};
 
-// Notification tag prefix for VibeTerm notifications
-const NOTIFICATION_TAG_PREFIX = 'vibeterm-';
+// Notification tag prefix for VibeTmux notifications
+const NOTIFICATION_TAG_PREFIX = 'vibetmux-';
 
 // Types for push notification payloads
 interface SessionExitData {
@@ -309,7 +309,7 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
 
   switch (data.type) {
     case 'CLEAR_NOTIFICATIONS': {
-      // Clear all VibeTerm notifications
+      // Clear all VibeTmux notifications
       clearAllNotifications();
       break;
     }
@@ -332,7 +332,7 @@ async function clearAllNotifications(): Promise<void> {
       }
     }
 
-    console.log('[SW] Cleared all VibeTerm notifications');
+    console.log('[SW] Cleared all VibeTmux notifications');
   } catch (error) {
     console.error('[SW] Failed to clear notifications:', error);
   }

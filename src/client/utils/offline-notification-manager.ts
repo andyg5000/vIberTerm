@@ -3,7 +3,7 @@ import { createLogger } from './logger.js';
 const logger = createLogger('offline-notification-manager');
 
 // IndexedDB database name and version
-const DB_NAME = 'vibeterm-offline';
+const DB_NAME = 'vibetmux-offline';
 const DB_VERSION = 1;
 const STORE_NAME = 'notifications';
 

@@ -1,4 +1,4 @@
-// VibeTerm server entry point
+// VibeTmux server entry point
 import chalk from 'chalk';
 import compression from 'compression';
 import type { Response as ExpressResponse } from 'express';
@@ -90,9 +90,9 @@ interface Config {
 // Show help message
 function showHelp() {
   console.log(`
-VibeTerm Server - Terminal Multiplexer
+VibeTmux Server - Terminal Multiplexer
 
-Usage: vibeterm-server [options]
+Usage: vibetmux-server [options]
 
 Options:
   --help                Show this help message
@@ -114,17 +114,17 @@ Push Notification Options:
 
 Environment Variables:
   PORT                  Default port if --port not specified
-  VIBETERM_USERNAME     Default username if --username not specified
-  VIBETERM_PASSWORD     Default password if --password not specified
-  VIBETERM_CONTROL_DIR  Control directory for session data
+  VIBETMUX_USERNAME     Default username if --username not specified
+  VIBETMUX_PASSWORD     Default password if --password not specified
+  VIBETMUX_CONTROL_DIR  Control directory for session data
   PUSH_CONTACT_EMAIL    Contact email for VAPID configuration
 
 Examples:
   # Run a simple server with authentication
-  vibeterm-server --username admin --password secret
+  vibetmux-server --username admin --password secret
 
   # Run with no auth
-  vibeterm-server --no-auth
+  vibetmux-server --no-auth
 `);
 }
 
@@ -259,7 +259,7 @@ export async function createApp(): Promise<AppInstance> {
   // Check if version was requested
   if (config.showVersion) {
     const versionInfo = getVersionInfo();
-    console.log(`VibeTerm Server v${versionInfo.version}`);
+    console.log(`VibeTmux Server v${versionInfo.version}`);
     console.log(`Built: ${versionInfo.buildDate}`);
     console.log(`Platform: ${versionInfo.platform}/${versionInfo.arch}`);
     console.log(`Node: ${versionInfo.nodeVersion}`);
@@ -271,7 +271,7 @@ export async function createApp(): Promise<AppInstance> {
 
   validateConfig(config);
 
-  logger.log('Initializing VibeTerm server components');
+  logger.log('Initializing VibeTmux server components');
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ noServer: true, perMessageDeflate: true });
@@ -300,7 +300,7 @@ export async function createApp(): Promise<AppInstance> {
 
   // Control directory for session data
   const CONTROL_DIR =
-    process.env.VIBETERM_CONTROL_DIR || path.join(os.homedir(), '.vibeterm/control');
+    process.env.VIBETMUX_CONTROL_DIR || path.join(os.homedir(), '.vibetmux/control');
 
   // Ensure control directory exists
   if (!fs.existsSync(CONTROL_DIR)) {
@@ -315,7 +315,7 @@ export async function createApp(): Promise<AppInstance> {
   const ptyManager = new PtyManager(CONTROL_DIR);
   logger.debug('Initialized PTY manager');
 
-  // Clean up sessions from old VibeTerm versions
+  // Clean up sessions from old VibeTmux versions
   const sessionManager = ptyManager.getSessionManager();
   const cleanupResult = sessionManager.cleanupOldVersionSessions();
   if (cleanupResult.versionChanged) {
@@ -365,7 +365,7 @@ export async function createApp(): Promise<AppInstance> {
       // Initialize VAPID manager with auto-generation
       vapidManager = new VapidManager();
       await vapidManager.initialize({
-        contactEmail: config.vapidEmail || 'noreply@vibeterm.local',
+        contactEmail: config.vapidEmail || 'noreply@vibetmux.local',
         generateIfMissing: true, // Auto-generate keys if none exist
       });
 
@@ -454,7 +454,7 @@ export async function createApp(): Promise<AppInstance> {
             ...pushPayload,
             icon: '/apple-touch-icon.png',
             badge: '/favicon-32.png',
-            tag: `vibeterm-${pushPayload.type}`,
+            tag: `vibetmux-${pushPayload.type}`,
             requireInteraction: pushPayload.type === 'command-error',
             actions: [
               {
@@ -519,16 +519,16 @@ export async function createApp(): Promise<AppInstance> {
     }
     // More precise npm package detection:
     // 1. Check if we're explicitly in an npm package structure
-    // 2. The file should be in node_modules/vibeterm/lib/
+    // 2. The file should be in node_modules/vibetmux/lib/
     // 3. Or check for our specific package markers
     const isNpmPackage = (() => {
-      // Most reliable: check if we're in node_modules/vibeterm structure
-      if (__filename.includes(path.join('node_modules', 'vibeterm', 'lib'))) {
+      // Most reliable: check if we're in node_modules/vibetmux structure
+      if (__filename.includes(path.join('node_modules', 'vibetmux', 'lib'))) {
         return true;
       }
 
       // Check for Windows path variant
-      if (__filename.includes('node_modules\\vibeterm\\lib')) {
+      if (__filename.includes('node_modules\\vibetmux\\lib')) {
         return true;
       }
 
@@ -540,7 +540,7 @@ export async function createApp(): Promise<AppInstance> {
         try {
           const packageJson = require(packageJsonPath);
           // Verify this is actually our package
-          return packageJson.name === 'vibeterm';
+          return packageJson.name === 'vibetmux';
         } catch {
           // Not a valid npm package structure
           return false;
@@ -550,7 +550,7 @@ export async function createApp(): Promise<AppInstance> {
       return false;
     })();
 
-    if (process.env.VIBETERM_BUNDLED === 'true' || process.env.BUILD_DATE || isNpmPackage) {
+    if (process.env.VIBETMUX_BUNDLED === 'true' || process.env.BUILD_DATE || isNpmPackage) {
       // In bundled/production/npm mode, find package root
       // When bundled, __dirname is /path/to/package/dist, so go up one level
       // When globally installed, we need to find the package root
@@ -665,7 +665,7 @@ export async function createApp(): Promise<AppInstance> {
           body,
           icon: '/apple-touch-icon.png',
           badge: '/favicon-32.png',
-          tag: `vibeterm-${notificationType}-${sessionId}`,
+          tag: `vibetmux-${notificationType}-${sessionId}`,
           requireInteraction: false,
           data: {
             type: notificationType,
@@ -727,7 +727,7 @@ export async function createApp(): Promise<AppInstance> {
           body: `${body} (${durationStr})`,
           icon: '/apple-touch-icon.png',
           badge: '/favicon-32.png',
-          tag: `vibeterm-command-${sessionId}-${Date.now()}`,
+          tag: `vibetmux-command-${sessionId}-${Date.now()}`,
           requireInteraction: false,
           data: {
             type: notificationType,
@@ -1019,7 +1019,7 @@ export async function createApp(): Promise<AppInstance> {
           );
           logger.error(`  2. Use environment variable: ${chalk.cyan('PORT=4021 pnpm run dev')}`);
           logger.error(
-            '  3. Stop the existing server (check for vibeterm processes)'
+            '  3. Stop the existing server (check for vibetmux processes)'
           );
         } else {
           logger.error(
@@ -1041,7 +1041,7 @@ export async function createApp(): Promise<AppInstance> {
         typeof address === 'string' ? requestedPort : address?.port || requestedPort;
       const displayAddress = bindAddress === '0.0.0.0' ? 'localhost' : bindAddress;
       logger.log(
-        chalk.green(`VibeTerm Server running on http://${displayAddress}:${actualPort}`)
+        chalk.green(`VibeTmux Server running on http://${displayAddress}:${actualPort}`)
       );
 
       if (config.noAuth) {
@@ -1109,7 +1109,7 @@ export async function createApp(): Promise<AppInstance> {
 let serverStarted = false;
 
 // Export a function to start the server
-export async function startVibeTermServer() {
+export async function startVibeTmuxServer() {
   // Initialize logger if not already initialized (preserves debug mode from CLI)
   initLogger();
 
@@ -1125,7 +1125,7 @@ export async function startVibeTermServer() {
   }
   serverStarted = true;
 
-  logger.debug('Creating VibeTerm application instance');
+  logger.debug('Creating VibeTmux application instance');
   // Create and configure the app
   const appInstance = await createApp();
   const {

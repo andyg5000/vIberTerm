@@ -70,7 +70,7 @@ async function build() {
       platform: 'node',
       target: 'node18',
       format: 'cjs',
-      outfile: 'dist/vibeterm-cli',
+      outfile: 'dist/vibetmux-cli',
       plugins: [nodePtyPlugin],
       external: [
         // 'node-pty', // Removed - handled by plugin
@@ -97,7 +97,7 @@ async function build() {
     });
     
     // Read the file and ensure it has exactly one shebang
-    let content = fs.readFileSync('dist/vibeterm-cli', 'utf8');
+    let content = fs.readFileSync('dist/vibetmux-cli', 'utf8');
     
     // Remove any existing shebangs
     content = content.replace(/^#!.*\n/gm, '');
@@ -106,10 +106,10 @@ async function build() {
     content = '#!/usr/bin/env node\n' + content;
     
     // Write the fixed content back
-    fs.writeFileSync('dist/vibeterm-cli', content);
+    fs.writeFileSync('dist/vibetmux-cli', content);
     
     // Make the CLI executable
-    fs.chmodSync('dist/vibeterm-cli', '755');
+    fs.chmodSync('dist/vibetmux-cli', '755');
     console.log('CLI bundle created successfully');
   } catch (error) {
     console.error('CLI bundling failed:', error);
@@ -127,13 +127,13 @@ async function build() {
 
 
   const shouldBuildSea =
-    process.env.VIBETERM_BUILD_SEA === '1' ||
-    process.env.VIBETERM_SEA === '1' ||
-    process.env.VIBETERM_SEA === 'true' ||
+    process.env.VIBETMUX_BUILD_SEA === '1' ||
+    process.env.VIBETMUX_SEA === '1' ||
+    process.env.VIBETMUX_SEA === 'true' ||
     process.argv.includes('--build-sea');
   const isLinux = process.platform === 'linux';
   if (isLinux && !shouldBuildSea) {
-    console.log('Skipping native SEA build on Linux (set VIBETERM_BUILD_SEA=1 or --build-sea to override).');
+    console.log('Skipping native SEA build on Linux (set VIBETMUX_BUILD_SEA=1 or --build-sea to override).');
     console.log('Build completed successfully!');
     return;
   }
@@ -143,13 +143,13 @@ async function build() {
 
   // Check if native binaries already exist (skip build for development)
   const nativeDir = path.join(__dirname, '..', 'native');
-  const vibetermPath = path.join(nativeDir, 'vibeterm');
+  const vibetmuxPath = path.join(nativeDir, 'vibetmux');
   const ptyNodePath = path.join(nativeDir, 'pty.node');
   const spawnHelperPath = path.join(nativeDir, 'spawn-helper');
 
-  if (fs.existsSync(vibetermPath) && fs.existsSync(ptyNodePath) && fs.existsSync(spawnHelperPath)) {
+  if (fs.existsSync(vibetmuxPath) && fs.existsSync(ptyNodePath) && fs.existsSync(spawnHelperPath)) {
     console.log('✅ Native binaries already exist, skipping build...');
-    console.log('  - vibeterm executable: ✓');
+    console.log('  - vibetmux executable: ✓');
     console.log('  - pty.node: ✓');
     console.log('  - spawn-helper: ✓');
   } else {

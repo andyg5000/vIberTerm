@@ -74,8 +74,8 @@ describe('SessionCreateForm', () => {
 
     it('should load saved values from localStorage', async () => {
       localStorageMock.getItem.mockImplementation((key) => {
-        if (key === 'vibeterm_last_working_dir') return '/home/user/projects';
-        if (key === 'vibeterm_last_command') return 'npm run dev';
+        if (key === 'vibetmux_last_working_dir') return '/home/user/projects';
+        if (key === 'vibetmux_last_command') return 'npm run dev';
         return null;
       });
 
@@ -258,10 +258,10 @@ describe('SessionCreateForm', () => {
       await waitForAsync();
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'vibeterm_last_working_dir',
+        'vibetmux_last_working_dir',
         '/projects/app'
       );
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('vibeterm_last_command', 'npm start');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('vibetmux_last_command', 'npm start');
     });
 
     it('should clear command and name after creation', async () => {

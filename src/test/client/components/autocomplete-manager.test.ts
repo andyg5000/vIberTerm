@@ -80,17 +80,17 @@ describe('AutocompleteManager', () => {
       const repositories: Repository[] = [
         {
           id: '1',
-          path: '/Users/test/Projects/vibeterm',
-          folderName: 'vibeterm',
+          path: '/Users/test/Projects/vibetmux',
+          folderName: 'vibetmux',
           lastModified: '2024-01-01',
-          relativePath: '~/Projects/vibeterm',
+          relativePath: '~/Projects/vibetmux',
         },
         {
           id: '2',
-          path: '/Users/test/Projects/vibeterm2',
-          folderName: 'vibeterm2',
+          path: '/Users/test/Projects/vibetmux2',
+          folderName: 'vibetmux2',
           lastModified: '2024-01-02',
-          relativePath: '~/Projects/vibeterm2',
+          relativePath: '~/Projects/vibetmux2',
         },
         {
           id: '3',
@@ -111,9 +111,9 @@ describe('AutocompleteManager', () => {
       const result = await manager.fetchCompletions('vibe');
 
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe('vibeterm');
+      expect(result[0].name).toBe('vibetmux');
       expect(result[0].isRepository).toBe(true);
-      expect(result[1].name).toBe('vibeterm2');
+      expect(result[1].name).toBe('vibetmux2');
     });
 
     it('should merge filesystem and repository completions without duplicates', async () => {

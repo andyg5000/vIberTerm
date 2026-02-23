@@ -250,7 +250,7 @@ export function createGitRoutes(): Router {
 
         // Get follow worktree setting from main repo
         const { stdout: followWorktreeOutput } = await execGit(
-          ['config', 'vibeterm.followWorktree'],
+          ['config', 'vibetmux.followWorktree'],
           {
             cwd: mainRepoPath,
           }
@@ -412,7 +412,7 @@ export function createGitRoutes(): Router {
           logger.info('Branch switched in main repo, disabling follow mode');
 
           try {
-            await execGit(['config', '--local', '--unset', 'vibeterm.followWorktree'], {
+            await execGit(['config', '--local', '--unset', 'vibetmux.followWorktree'], {
               cwd: repoPath,
             });
 

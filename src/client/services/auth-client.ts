@@ -57,8 +57,8 @@ interface User {
  * @see web/src/server/routes/auth.ts - Server-side authentication endpoints
  */
 export class AuthClient {
-  private static readonly TOKEN_KEY = 'vibeterm_auth_token';
-  private static readonly USER_KEY = 'vibeterm_user_data';
+  private static readonly TOKEN_KEY = 'vibetmux_auth_token';
+  private static readonly USER_KEY = 'vibetmux_user_data';
 
   private currentUser: User | null = null;
   private sshAgent: BrowserSSHAgent;

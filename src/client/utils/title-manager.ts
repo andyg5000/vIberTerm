@@ -1,5 +1,5 @@
 /**
- * Centralized title management for VibeTerm
+ * Centralized title management for VibeTmux
  */
 
 export class TitleManager {
@@ -20,7 +20,7 @@ export class TitleManager {
    * Set title for session view
    */
   setSessionTitle(sessionName: string): void {
-    document.title = `VibeTerm - ${sessionName}`;
+    document.title = `VibeTmux - ${sessionName}`;
   }
 
   /**
@@ -29,15 +29,15 @@ export class TitleManager {
   setListTitle(sessionCount: number): void {
     document.title =
       sessionCount > 0
-        ? `VibeTerm - ${sessionCount} Session${sessionCount !== 1 ? 's' : ''}`
-        : 'VibeTerm';
+        ? `VibeTmux - ${sessionCount} Session${sessionCount !== 1 ? 's' : ''}`
+        : 'VibeTmux';
   }
 
   /**
    * Set title for file browser
    */
   setFileBrowserTitle(): void {
-    document.title = 'VibeTerm - File Browser';
+    document.title = 'VibeTmux - File Browser';
   }
 
   /**

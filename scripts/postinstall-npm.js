@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const os = require('os');
 
-console.log('Setting up native modules for VibeTerm...');
+console.log('Setting up native modules for VibeTmux...');
 
 // Check for npm_config_prefix conflict with NVM
 if (process.env.npm_config_prefix && process.env.NVM_DIR) {
@@ -24,7 +24,7 @@ if (process.env.npm_config_prefix && process.env.NVM_DIR) {
     console.warn(`   NVM Node path: ${nvmNodeVersion}`);
     console.warn('   This may cause npm global installs to fail or install in wrong location.');
     console.warn('   Run: unset npm_config_prefix');
-    console.warn('   Then reinstall VibeTerm for proper NVM compatibility.');
+    console.warn('   Then reinstall VibeTmux for proper NVM compatibility.');
   }
 }
 
@@ -221,7 +221,7 @@ for (const module of modules) {
       console.warn('   This is expected - macOS will fall back to environment variable or SSH key authentication.');
       console.warn('   To enable PAM authentication, install Xcode Command Line Tools and rebuild.');
     } else if (module.essential) {
-      console.error(`\n❌ ${module.name} is required for VibeTerm to function.`);
+      console.error(`\n❌ ${module.name} is required for VibeTmux to function.`);
       console.error('You may need to install build tools for your platform:');
       console.error('- macOS: Install Xcode Command Line Tools');
       console.error('- Linux: Install build-essential and libpam0g-dev packages');
@@ -233,13 +233,13 @@ for (const module of modules) {
 }
 
 // Ensure zig forwarder is executable if present
-const forwarderPath = path.join(__dirname, '..', 'bin', 'vibeterm-fwd');
+const forwarderPath = path.join(__dirname, '..', 'bin', 'vibetmux-fwd');
 if (fs.existsSync(forwarderPath)) {
   try {
     fs.chmodSync(forwarderPath, 0o755);
     console.log('✓ Zig forwarder is executable');
   } catch (error) {
-    console.warn(`⚠️  Failed to set executable bit on vibeterm-fwd: ${error.message}`);
+    console.warn(`⚠️  Failed to set executable bit on vibetmux-fwd: ${error.message}`);
   }
 }
 
@@ -262,6 +262,6 @@ if (hasErrors) {
   console.error('\n❌ Setup failed with errors');
   process.exit(1);
 } else {
-  console.log('\n✅ VibeTerm is ready to use');
-  console.log('Run "vibeterm --help" for usage information');
+  console.log('\n✅ VibeTmux is ready to use');
+  console.log('Run "vibetmux --help" for usage information');
 }

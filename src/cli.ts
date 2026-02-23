@@ -1,35 +1,35 @@
 #!/usr/bin/env node
-// Entry point for the VibeTerm server
+// Entry point for the VibeTmux server
 
-import { startVibeTermServer } from './server/server.js';
+import { startVibeTmuxServer } from './server/server.js';
 import { closeLogger, createLogger, initLogger, VerbosityLevel } from './server/utils/logger.js';
 import { parseVerbosityFromEnv } from './server/utils/verbosity-parser.js';
 import { VERSION } from './server/version.js';
 
 // Check for version command early - before logger initialization
 if (process.argv[2] === 'version') {
-  console.log(`VibeTerm Server v${VERSION}`);
+  console.log(`VibeTmux Server v${VERSION}`);
   process.exit(0);
 }
 
 // Initialize logger before anything else
 const verbosityLevel = parseVerbosityFromEnv();
-const debugMode = process.env.VIBETERM_DEBUG === '1' || process.env.VIBETERM_DEBUG === 'true';
+const debugMode = process.env.VIBETMUX_DEBUG === '1' || process.env.VIBETMUX_DEBUG === 'true';
 
 initLogger(debugMode, verbosityLevel);
 const logger = createLogger('cli');
 
 // Prevent double execution
-interface GlobalWithVibeterm {
-  __vibetermStarted?: boolean;
+interface GlobalWithVibetmux {
+  __vibetmuxStarted?: boolean;
 }
 
-const globalWithVibeterm = global as unknown as GlobalWithVibeterm;
+const globalWithVibetmux = global as unknown as GlobalWithVibetmux;
 
-if (globalWithVibeterm.__vibetermStarted) {
+if (globalWithVibetmux.__vibetmuxStarted) {
   process.exit(0);
 }
-globalWithVibeterm.__vibetermStarted = true;
+globalWithVibetmux.__vibetmuxStarted = true;
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -49,29 +49,29 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 function printHelp(): void {
-  console.log(`VibeTerm Server v${VERSION}`);
+  console.log(`VibeTmux Server v${VERSION}`);
   console.log('');
   console.log('Usage:');
-  console.log('  vibeterm [options]                    Start VibeTerm server');
-  console.log('  vibeterm systemd [action]             Manage systemd service (Linux)');
-  console.log('  vibeterm version                      Show version');
-  console.log('  vibeterm help                         Show this help');
+  console.log('  vibetmux [options]                    Start VibeTmux server');
+  console.log('  vibetmux systemd [action]             Manage systemd service (Linux)');
+  console.log('  vibetmux version                      Show version');
+  console.log('  vibetmux help                         Show this help');
   console.log('');
   console.log('Systemd Service Actions:');
-  console.log('  install   - Install VibeTerm as systemd service (default)');
-  console.log('  uninstall - Remove VibeTerm systemd service');
+  console.log('  install   - Install VibeTmux as systemd service (default)');
+  console.log('  uninstall - Remove VibeTmux systemd service');
   console.log('  status    - Check systemd service status');
   console.log('');
   console.log('Examples:');
-  console.log('  vibeterm --port 8080 --no-auth');
-  console.log('  vibeterm systemd');
-  console.log('  vibeterm systemd uninstall');
+  console.log('  vibetmux --port 8080 --no-auth');
+  console.log('  vibetmux systemd');
+  console.log('  vibetmux systemd uninstall');
   console.log('');
-  console.log('For more options, run: vibeterm --help');
+  console.log('For more options, run: vibetmux --help');
 }
 
 function printVersion(): void {
-  console.log(`VibeTerm Server v${VERSION}`);
+  console.log(`VibeTmux Server v${VERSION}`);
 }
 
 async function handleSystemdService(): Promise<void> {
@@ -88,9 +88,9 @@ async function handleSystemdService(): Promise<void> {
 
 function handleStartServer(): void {
   if (verbosityLevel !== undefined && verbosityLevel >= VerbosityLevel.INFO) {
-    logger.log('Starting VibeTerm server...');
+    logger.log('Starting VibeTmux server...');
   }
-  startVibeTermServer();
+  startVibeTmuxServer();
 }
 
 async function parseCommandAndExecute(): Promise<void> {
@@ -125,7 +125,7 @@ function isMainModule(): boolean {
     !module.parent &&
     (require.main === module ||
       require.main === undefined ||
-      (require.main?.filename?.endsWith('/vibeterm-cli') ?? false))
+      (require.main?.filename?.endsWith('/vibetmux-cli') ?? false))
   );
 }
 

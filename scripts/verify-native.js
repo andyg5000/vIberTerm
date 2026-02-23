@@ -9,8 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const nativeExe = path.join(__dirname, '..', 'native', 'vibeterm');
-const forwarderExe = path.join(__dirname, '..', 'native', 'vibeterm-fwd');
+const nativeExe = path.join(__dirname, '..', 'native', 'vibetmux');
+const forwarderExe = path.join(__dirname, '..', 'native', 'vibetmux-fwd');
 
 console.log('Verifying native executable...');
 console.log(`Path: ${nativeExe}`);

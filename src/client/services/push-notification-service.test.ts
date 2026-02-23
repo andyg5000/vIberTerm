@@ -581,19 +581,19 @@ describe('PushNotificationService', () => {
 
       expect(testNotificationHandler).toBeDefined();
       testNotificationHandler?.({
-        title: 'VibeTerm Test',
+        title: 'VibeTmux Test',
         body: 'Push notifications are working correctly!',
       });
 
       await testPromise;
 
       expect(mockServiceWorkerRegistration.showNotification).toHaveBeenCalledWith(
-        'VibeTerm Test',
+        'VibeTmux Test',
         expect.objectContaining({
           body: 'Push notifications are working correctly!',
           icon: '/apple-touch-icon.png',
           badge: '/favicon-32.png',
-          tag: 'vibeterm-test',
+          tag: 'vibetmux-test',
         })
       );
     });

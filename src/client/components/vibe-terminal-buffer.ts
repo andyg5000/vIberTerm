@@ -1,5 +1,5 @@
 /**
- * VibeTerm Terminal Buffer Component
+ * VibeTmux Terminal Buffer Component
  *
  * Displays a read-only terminal buffer snapshot with automatic resizing.
  * Subscribes to buffer updates via WebSocket and renders the terminal content.
@@ -24,7 +24,7 @@ interface BufferSnapshot {
 }
 
 @customElement('vibe-terminal-buffer')
-export class VibeTerminalBuffer extends LitElement {
+export class VibeTmuxinalBuffer extends LitElement {
   // Disable shadow DOM for Tailwind compatibility
   createRenderRoot() {
     return this as unknown as HTMLElement;

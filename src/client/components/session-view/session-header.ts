@@ -68,7 +68,7 @@ export class SessionHeader extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     // Load saved theme preference
-    const saved = localStorage.getItem('vibeterm-theme');
+    const saved = localStorage.getItem('vibetmux-theme');
     this.currentTheme = (saved as 'light' | 'dark' | 'system') || 'system';
 
     // Setup resize observer for responsive button switching

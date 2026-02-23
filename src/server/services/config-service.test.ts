@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_CONFIG,
   type QuickStartCommand,
-  type VibeTermConfig,
+  type VibeTmuxConfig,
 } from '../../types/config.js';
 import { ConfigService } from './config-service.js';
 
@@ -32,7 +32,7 @@ vi.mock('../utils/logger', () => ({
 describe('ConfigService', () => {
   let configService: ConfigService;
   const mockHomeDir = '/home/testuser';
-  const mockConfigDir = path.join(mockHomeDir, '.vibeterm');
+  const mockConfigDir = path.join(mockHomeDir, '.vibetmux');
   const mockConfigPath = path.join(mockConfigDir, 'config.json');
 
   beforeEach(() => {
@@ -67,7 +67,7 @@ describe('ConfigService', () => {
         return false;
       });
 
-      const customConfig: VibeTermConfig = {
+      const customConfig: VibeTmuxConfig = {
         version: 1,
         quickStartCommands: [{ command: 'custom' }],
       };
@@ -124,7 +124,7 @@ describe('ConfigService', () => {
       });
 
       // Invalid config - empty command
-      const invalidConfig: VibeTermConfig = {
+      const invalidConfig: VibeTmuxConfig = {
         version: 1,
         quickStartCommands: [{ command: '' }],
       };
@@ -302,7 +302,7 @@ describe('ConfigService', () => {
 
   describe('updateConfig', () => {
     it('should update entire config and validate', () => {
-      const newConfig: VibeTermConfig = {
+      const newConfig: VibeTmuxConfig = {
         version: 2,
         quickStartCommands: [{ command: 'python3' }, { name: 'Node.js', command: 'node' }],
       };
@@ -321,7 +321,7 @@ describe('ConfigService', () => {
       const invalidConfig = {
         version: 'not-a-number', // Should be number
         quickStartCommands: [{ command: 'test' }],
-      } as unknown as VibeTermConfig;
+      } as unknown as VibeTmuxConfig;
 
       expect(() => {
         configService.updateConfig(invalidConfig);
@@ -338,7 +338,7 @@ describe('ConfigService', () => {
           { command: 'valid' },
           { notACommand: 'invalid' }, // Missing required 'command' field
         ],
-      } as unknown as VibeTermConfig;
+      } as unknown as VibeTmuxConfig;
 
       expect(() => {
         configService.updateConfig(invalidConfig);
@@ -349,7 +349,7 @@ describe('ConfigService', () => {
       const invalidConfig = {
         version: 1,
         quickStartCommands: 'not-an-array',
-      } as unknown as VibeTermConfig;
+      } as unknown as VibeTmuxConfig;
 
       expect(() => {
         configService.updateConfig(invalidConfig);

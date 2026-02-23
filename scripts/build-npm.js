@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Clean npm build script for VibeTerm
+ * Clean npm build script for VibeTmux
  * Uses a separate dist-npm directory with its own package.json
  * Builds for all platforms by default with complete prebuild support
  * 
@@ -81,7 +81,7 @@ if (currentOnly) {
   }
 }
 
-console.log('🚀 Building VibeTerm for npm distribution (clean approach)...\n');
+console.log('🚀 Building VibeTmux for npm distribution (clean approach)...\n');
 
 if (currentOnly) {
   console.log(`📦 Legacy mode: Building for ${process.platform}/${process.arch} only\n`);
@@ -490,10 +490,10 @@ function validatePackageHybrid() {
   
   // Check critical files in dist-npm
   const criticalFiles = [
-    'lib/vibeterm-cli',
+    'lib/vibetmux-cli',
     'lib/cli.js',
-    'bin/vibeterm',
-    'bin/vibeterm-fwd',
+    'bin/vibetmux',
+    'bin/vibetmux-fwd',
     'bin/vt',
     'scripts/postinstall.js',
     'public/index.html',
@@ -611,7 +611,7 @@ async function main() {
   
   const filesToCopy = [
     // Compiled CLI
-    { src: 'dist/vibeterm-cli', dest: 'lib/cli.js' },
+    { src: 'dist/vibetmux-cli', dest: 'lib/cli.js' },
     { src: 'dist/tsconfig.server.tsbuildinfo', dest: 'lib/tsconfig.server.tsbuildinfo' },
     
     // Bin scripts
@@ -710,7 +710,7 @@ async function main() {
       
       // Bin scripts
       bin: {
-        vibeterm: './bin/vibeterm',
+        vibetmux: './bin/vibetmux',
         vt: './bin/vt'
       },
       
@@ -750,30 +750,30 @@ async function main() {
   // Step 6: Fix the CLI structure and bin scripts
   console.log('\n6️⃣ Fixing CLI structure and bin scripts...\n');
   
-  // The dist/vibeterm-cli was copied to lib/cli.js
+  // The dist/vibetmux-cli was copied to lib/cli.js
   // We need to rename it and create a wrapper
   const cliPath = path.join(DIST_DIR, 'lib', 'cli.js');
-  const cliBundlePath = path.join(DIST_DIR, 'lib', 'vibeterm-cli');
+  const cliBundlePath = path.join(DIST_DIR, 'lib', 'vibetmux-cli');
   
   // Rename the bundle
   fs.renameSync(cliPath, cliBundlePath);
   
   // Create a simple wrapper that requires the bundle
   const cliWrapperContent = `#!/usr/bin/env node
-require('./vibeterm-cli');
+require('./vibetmux-cli');
 `;
   
   fs.writeFileSync(cliPath, cliWrapperContent, { mode: 0o755 });
   
   // Fix bin scripts to point to correct path
-  const binVibetermPath = path.join(DIST_DIR, 'bin', 'vibeterm');
-  const binVibetermContent = `#!/usr/bin/env node
+  const binVibetmuxPath = path.join(DIST_DIR, 'bin', 'vibetmux');
+  const binVibetmuxContent = `#!/usr/bin/env node
 
 // Start the CLI - it handles all command routing including 'fwd'
 const { spawn } = require('child_process');
 const path = require('path');
 
-const cliPath = path.join(__dirname, '..', 'lib', 'vibeterm-cli');
+const cliPath = path.join(__dirname, '..', 'lib', 'vibetmux-cli');
 const args = process.argv.slice(2);
 
 const child = spawn('node', [cliPath, ...args], {
@@ -795,8 +795,8 @@ child.on('exit', (code, signal) => {
   }
 });
 `;
-  fs.writeFileSync(binVibetermPath, binVibetermContent, { mode: 0o755 });
-  console.log('  ✓ Fixed bin/vibeterm path');
+  fs.writeFileSync(binVibetmuxPath, binVibetmuxContent, { mode: 0o755 });
+  console.log('  ✓ Fixed bin/vibetmux path');
   
   // vt script doesn't need fixing - it dynamically finds the binary
   
@@ -881,7 +881,7 @@ child.on('exit', (code, signal) => {
   
   console.log('\n🎉 Hybrid npm build completed successfully!');
   console.log('\nNext steps:');
-  console.log('  - Test locally: npm pack && npm install -g vibeterm-*.tgz');
+  console.log('  - Test locally: npm pack && npm install -g vibetmux-*.tgz');
   console.log('  - Test Linux compatibility: Check authenticate-pam and fallback compilation');
   console.log('  - Publish: npm publish');
 }

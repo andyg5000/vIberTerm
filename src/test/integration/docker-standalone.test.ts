@@ -30,7 +30,7 @@ const describeDocker = isDockerAvailable() ? describe : describe.skip;
 
 describeDocker('Dockerfile.standalone', () => {
   const projectRoot = process.cwd();
-  const imageTag = `vibeterm-standalone-test:${Date.now()}`;
+  const imageTag = `vibetmux-standalone-test:${Date.now()}`;
 
   afterAll(() => {
     spawnSync('docker', ['image', 'rm', '-f', imageTag], { stdio: 'ignore' });
@@ -41,7 +41,7 @@ describeDocker('Dockerfile.standalone', () => {
     () => {
       runDocker(['build', '-f', 'Dockerfile.standalone', '-t', imageTag, '.'], projectRoot);
       const runResult = runDocker(['run', '--rm', imageTag, '--version'], projectRoot);
-      expect(runResult.stdout).toContain('VibeTerm');
+      expect(runResult.stdout).toContain('VibeTmux');
     },
     10 * 60 * 1000
   );

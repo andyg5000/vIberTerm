@@ -32,7 +32,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
     try {
       const { stdout, stderr } = await execFileAsync(vtPath, args, {
         cwd,
-        env: { ...process.env, VIBETERM_PORT: String(serverPort) },
+        env: { ...process.env, VIBETMUX_PORT: String(serverPort) },
       });
       return { stdout: stdout.toString().trim(), stderr: stderr.toString().trim() };
     } catch (error) {
@@ -47,7 +47,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
 
   // Setup test repository with multiple branches
   async function setupTestRepo() {
-    const tmpDir = await fs.mkdtemp(path.join('/tmp', 'vibeterm-e2e-'));
+    const tmpDir = await fs.mkdtemp(path.join('/tmp', 'vibetmux-e2e-'));
     testRepoPath = path.join(tmpDir, 'follow-mode-test');
     await fs.mkdir(testRepoPath, { recursive: true });
 
@@ -97,7 +97,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
     return tmpDir;
   }
 
-  // Start the VibeTerm server
+  // Start the VibeTmux server
   async function startServer() {
     return new Promise<void>((resolve, reject) => {
       // Find an available port
@@ -105,9 +105,9 @@ describe.skip('Follow Mode End-to-End Tests', () => {
       baseUrl = `http://localhost:${serverPort}`;
 
       // Use tsx to run the server directly from source
-      // Remove VIBETERM_SEA to prevent node-pty from looking for pty.node next to executable
+      // Remove VIBETMUX_SEA to prevent node-pty from looking for pty.node next to executable
       const serverEnv = { ...process.env };
-      delete serverEnv.VIBETERM_SEA;
+      delete serverEnv.VIBETMUX_SEA;
 
       serverProcess = spawn('pnpm', ['exec', 'tsx', 'src/server/server.ts'], {
         cwd: process.cwd(),
@@ -132,7 +132,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
       serverProcess.stdout.on('data', (data: Buffer) => {
         const output = data.toString();
         console.log('[Server]', output.trim());
-        if (output.includes('VibeTerm Server running') && !started) {
+        if (output.includes('VibeTmux Server running') && !started) {
           started = true;
           clearTimeout(timeout);
           resolve();
@@ -195,7 +195,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
       expect(response.body.branch).toBe('develop');
 
       // Verify git config was set (should contain worktree path, not branch name)
-      const { stdout: configOutput } = await gitExec(['config', 'vibeterm.followWorktree']);
+      const { stdout: configOutput } = await gitExec(['config', 'vibetmux.followWorktree']);
       expect(configOutput).toBe(worktreePath); // Should be the worktree path, not branch name
 
       // Verify hooks were installed
@@ -271,7 +271,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
 
       // Check that follow mode was disabled (config should not exist)
       try {
-        await gitExec(['config', 'vibeterm.followWorktree']);
+        await gitExec(['config', 'vibetmux.followWorktree']);
         // If we get here, the config still exists
         expect(true).toBe(false); // Fail the test
       } catch (error) {
@@ -299,7 +299,7 @@ describe.skip('Follow Mode End-to-End Tests', () => {
 
       // Verify git config was removed
       try {
-        await gitExec(['config', 'vibeterm.followWorktree']);
+        await gitExec(['config', 'vibetmux.followWorktree']);
         // If we get here, the config still exists
         expect(true).toBe(false); // Fail the test
       } catch (error) {
@@ -519,7 +519,7 @@ exit 0`;
 
       // Check that new hook chains to backup
       const newHook = await fs.readFile(hookPath, 'utf8');
-      expect(newHook).toContain('VibeTerm Git hook');
+      expect(newHook).toContain('VibeTmux Git hook');
       expect(newHook).toContain('.vtbak');
     });
 
@@ -547,7 +547,7 @@ echo "Custom checkout hook"`;
       // Check that original hook was restored
       const restoredHook = await fs.readFile(hookPath, 'utf8');
       expect(restoredHook).toBe(customHook);
-      expect(restoredHook).not.toContain('VibeTerm');
+      expect(restoredHook).not.toContain('VibeTmux');
     });
   });
 });

@@ -222,7 +222,7 @@ export class TmuxManager {
   }
 
   /**
-   * Attach to a tmux session/window/pane through VibeTerm
+   * Attach to a tmux session/window/pane through VibeTmux
    */
   async attachToTmux(
     sessionName: string,
@@ -243,7 +243,7 @@ export class TmuxManager {
     const attachTarget = windowIndex !== undefined ? `${sessionName}:${windowIndex}` : sessionName;
     const tmuxCommand = ['tmux', 'attach-session', '-t', attachTarget];
 
-    // Check for existing VibeTerm session already attached to this tmux session
+    // Check for existing VibeTmux session already attached to this tmux session
     const existingSessions = this.ptyManager.listSessions();
     const existingSession = existingSessions.find(
       (s) =>
@@ -263,14 +263,14 @@ export class TmuxManager {
           logger.warn('Failed to switch tmux window', { sessionName, windowIndex, error });
         }
       }
-      logger.info('Reusing existing VibeTerm session for tmux target', {
+      logger.info('Reusing existing VibeTmux session for tmux target', {
         target: attachTarget,
         sessionId: existingSession.id,
       });
       return existingSession.id;
     }
 
-    // Create a new VibeTerm session that runs tmux attach
+    // Create a new VibeTmux session that runs tmux attach
     const sessionOptions: SessionCreateOptions = {
       name: `tmux: ${target}`,
       workingDir: resolveAbsolutePath(options?.workingDir || process.env.HOME || '/'),

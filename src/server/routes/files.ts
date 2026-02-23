@@ -14,7 +14,7 @@ const logger = createLogger('files');
 
 // Create uploads directory in the control directory
 const CONTROL_DIR =
-  process.env.VIBETERM_CONTROL_DIR || path.join(os.homedir(), '.vibeterm/control');
+  process.env.VIBETMUX_CONTROL_DIR || path.join(os.homedir(), '.vibetmux/control');
 const UPLOADS_DIR = path.join(CONTROL_DIR, 'uploads');
 
 // Ensure uploads directory exists
