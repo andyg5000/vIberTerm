@@ -1,10 +1,10 @@
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { createLogger } from '../utils/logger.js';
 
 const logger = createLogger('process-tree-analyzer');
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 export interface ProcessInfo {
   pid: number;
@@ -61,11 +61,11 @@ export class ProcessTreeAnalyzer {
 
       // Final fallback: try to get just the root process
       try {
-        const psCommand = isMacOS
-          ? `ps -o pid,ppid,pgid,tty,state,lstart,command -p ${rootPid}`
-          : `ps -o pid,ppid,pgid,sid,tty,state,lstart,command -p ${rootPid}`;
+        const psArgs = isMacOS
+          ? ['-o', 'pid,ppid,pgid,tty,state,lstart,command', '-p', String(rootPid)]
+          : ['-o', 'pid,ppid,pgid,sid,tty,state,lstart,command', '-p', String(rootPid)];
 
-        const { stdout } = await execAsync(psCommand, { timeout: 5000 });
+        const { stdout } = await execFileAsync('ps', psArgs, { timeout: 5000 });
         return this.parseUnixProcessOutput(stdout, isMacOS);
       } catch (finalError) {
         logger.warn('ProcessTreeAnalyzer', `Final fallback also failed:`, finalError);
@@ -79,8 +79,16 @@ export class ProcessTreeAnalyzer {
    */
   private async getWindowsProcessTree(rootPid: number): Promise<ProcessInfo[]> {
     try {
-      const { stdout } = await execAsync(
-        `wmic process where "ParentProcessId=${rootPid}" get ProcessId,ParentProcessId,CommandLine /format:csv`,
+      const { stdout } = await execFileAsync(
+        'wmic',
+        [
+          'process',
+          'where',
+          `ParentProcessId=${rootPid}`,
+          'get',
+          'ProcessId,ParentProcessId,CommandLine',
+          '/format:csv',
+        ],
         { timeout: 5000 }
       );
 
@@ -448,12 +456,12 @@ export class ProcessTreeAnalyzer {
     const processedPids = new Set<number>();
 
     // Get all processes on the system
-    const psCommand = isMacOS
-      ? 'ps -eo pid,ppid,pgid,tty,state,lstart,command'
-      : 'ps -eo pid,ppid,pgid,sid,tty,state,lstart,command';
+    const psArgs = isMacOS
+      ? ['-eo', 'pid,ppid,pgid,tty,state,lstart,command']
+      : ['-eo', 'pid,ppid,pgid,sid,tty,state,lstart,command'];
 
-    logger.log('ProcessTreeAnalyzer', `Getting all system processes with: ${psCommand}`);
-    const { stdout } = await execAsync(psCommand, { timeout: 10000 });
+    logger.log('ProcessTreeAnalyzer', `Getting all system processes with: ps ${psArgs.join(' ')}`);
+    const { stdout } = await execFileAsync('ps', psArgs, { timeout: 10000 });
     const allSystemProcesses = this.parseUnixProcessOutput(stdout, isMacOS);
 
     logger.log('ProcessTreeAnalyzer', `Found ${allSystemProcesses.length} total system processes`);

@@ -6,7 +6,7 @@
  */
 
 import chalk from 'chalk';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { EventEmitter, once } from 'events';
 import * as fs from 'fs';
 import * as net from 'net';
@@ -1899,6 +1899,12 @@ export class PtyManager extends EventEmitter {
       clearInterval(session.titleInjectionTimer);
       session.titleInjectionTimer = undefined;
     }
+
+    // Clean up foreground process polling interval
+    if (session.processPollingInterval) {
+      clearInterval(session.processPollingInterval);
+      session.processPollingInterval = undefined;
+    }
   }
 
   /**
@@ -2157,7 +2163,9 @@ export class PtyManager extends EventEmitter {
    */
   private async getProcessPgid(pid: number): Promise<number | null> {
     try {
-      const { stdout } = await this.execAsync(`ps -o pgid= -p ${pid}`, { timeout: 1000 });
+      const { stdout } = await this.execFileAsync('ps', ['-o', 'pgid=', '-p', String(pid)], {
+        timeout: 1000,
+      });
       const pgid = Number.parseInt(stdout.trim(), 10);
       return Number.isNaN(pgid) ? null : pgid;
     } catch (_error) {
@@ -2180,17 +2188,23 @@ export class PtyManager extends EventEmitter {
         return this.getForegroundFromProcessTree(session);
       }
 
-      // Use ps to find processes associated with this terminal
-      const psCommand = `ps -t ${ttyName} -o pgid,pid,ppid,command | grep -v PGID | head -1`;
-      const { stdout } = await this.execAsync(psCommand, { timeout: 1000 });
+      // Use ps to find processes associated with this terminal (execFile avoids spawning sh)
+      const { stdout } = await this.execFileAsync(
+        'ps',
+        ['-t', ttyName, '-o', 'pgid,pid,ppid,command'],
+        { timeout: 1000 }
+      );
 
+      // Parse output in JS instead of piping through grep/head (avoids spawning extra sh processes)
       const lines = stdout.trim().split('\n');
-      if (lines.length > 0 && lines[0].trim()) {
-        const parts = lines[0].trim().split(/\s+/);
+      // Skip header line (contains "PGID"), take first data line
+      const dataLine = lines.find((line) => line.trim() && !line.includes('PGID'));
+      if (dataLine?.trim()) {
+        const parts = dataLine.trim().split(/\s+/);
         const pgid = Number.parseInt(parts[0], 10);
 
         // Log the raw ps output for debugging
-        logger.debug(`Session ${session.id}: ps output for TTY ${ttyName}: "${lines[0].trim()}"`);
+        logger.debug(`Session ${session.id}: ps output for TTY ${ttyName}: "${dataLine.trim()}"`);
 
         if (!Number.isNaN(pgid)) {
           return pgid;
@@ -2242,7 +2256,14 @@ export class PtyManager extends EventEmitter {
    * Check current foreground process and detect changes
    */
   private async checkForegroundProcess(session: PtySession): Promise<void> {
-    if (!session.ptyProcess || !session.shellPgid) return;
+    if (!session.ptyProcess || !session.shellPgid) {
+      // Session is gone, stop polling
+      if (session.processPollingInterval) {
+        clearInterval(session.processPollingInterval);
+        session.processPollingInterval = undefined;
+      }
+      return;
+    }
 
     try {
       const currentPgid = await this.getTerminalForegroundPgid(session);
@@ -2403,11 +2424,10 @@ export class PtyManager extends EventEmitter {
     try {
       // Check if we can find the exit status in shell history or process info
       // This is platform-specific and might not be reliable
-      const { stdout } = await this.execAsync(
-        `ps -o pid,stat -p ${pgid} 2>/dev/null || echo "NOTFOUND"`,
-        { timeout: 500 }
-      );
-      if (stdout.includes('NOTFOUND') || stdout.includes('Z')) {
+      const { stdout } = await this.execFileAsync('ps', ['-o', 'pid,stat', '-p', String(pgid)], {
+        timeout: 500,
+      });
+      if (stdout.includes('Z')) {
         // Process is zombie or not found, likely exited
         // We can't reliably get exit code this way
         logger.debug(
@@ -2450,5 +2470,5 @@ export class PtyManager extends EventEmitter {
   /**
    * Import necessary exec function
    */
-  private execAsync = promisify(exec);
+  private execFileAsync = promisify(execFile);
 }
