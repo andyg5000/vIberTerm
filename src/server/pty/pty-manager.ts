@@ -1615,15 +1615,8 @@ export class PtyManager extends EventEmitter {
     memorySession?: PtySession,
     diskSession?: SessionInfo | null
   ): Promise<string> {
-    // Strategy 1: In-memory currentWorkingDir (runtime tracking)
-    if (memorySession?.currentWorkingDir) {
-      logger.debug(
-        `captureCwd: using in-memory CWD for ${sessionId}: ${memorySession.currentWorkingDir}`
-      );
-      return memorySession.currentWorkingDir;
-    }
-
-    // Strategy 2: For tmux sessions, get CWD from the active tmux pane
+    // Strategy 1: For tmux sessions, ALWAYS get CWD from the tmux pane first
+    // The in-memory currentWorkingDir tracks the wrapper process, not the pane
     const isTmux =
       diskSession?.command?.[0] === 'tmux' && diskSession?.command?.[1] === 'attach-session';
     if (isTmux && diskSession?.command?.[3]) {
@@ -1645,6 +1638,14 @@ export class PtyManager extends EventEmitter {
       } catch {
         logger.debug(`captureCwd: tmux pane CWD failed for ${sessionId}`);
       }
+    }
+
+    // Strategy 2: In-memory currentWorkingDir (runtime tracking, non-tmux sessions)
+    if (memorySession?.currentWorkingDir) {
+      logger.debug(
+        `captureCwd: using in-memory CWD for ${sessionId}: ${memorySession.currentWorkingDir}`
+      );
+      return memorySession.currentWorkingDir;
     }
 
     // Strategy 3: /proc/<pid>/cwd on Linux
