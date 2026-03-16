@@ -1878,7 +1878,7 @@ export class PtyManager extends EventEmitter {
         cwd,
         'bash',
         '-lc',
-        'claude --continue',
+        'clear && claude --continue',
       ]);
 
       // Attach VibeTmux to the new tmux session
