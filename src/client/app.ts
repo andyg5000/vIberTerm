@@ -907,6 +907,7 @@ export class VibeTmuxApp extends LitElement {
 
   private handleRefresh() {
     this.loadSessions();
+    this.loadProjectConfig();
   }
 
   private handleError(e: CustomEvent) {

@@ -9,10 +9,12 @@ import type {
   TmuxPane,
   TmuxWindow,
 } from '../../shared/multiplexer-types.js';
+import type { Project } from '../../shared/types.js';
 import { apiClient } from '../services/api-client.js';
 import { ServerConfigService } from '../services/server-config-service.js';
 import './confirm-dialog.js';
 import './modal-wrapper.js';
+import './session-create-form/project-selector.js';
 
 @customElement('multiplexer-modal')
 export class MultiplexerModal extends LitElement {
@@ -49,6 +51,12 @@ export class MultiplexerModal extends LitElement {
   private error: string | null = null;
 
   @state()
+  private projects: Project[] = [];
+
+  @state()
+  private selectedProjectId?: string;
+
+  @state()
   private pendingKill: {
     type: 'session' | 'window' | 'pane';
     multiplexerType: MultiplexerType;
@@ -68,6 +76,17 @@ export class MultiplexerModal extends LitElement {
   protected updated(changedProps: PropertyValues) {
     if (changedProps.has('open') && this.open) {
       this.loadMultiplexerStatus();
+      this.loadProjects();
+    }
+  }
+
+  private async loadProjects() {
+    try {
+      const configService = new ServerConfigService();
+      const config = await configService.loadConfig();
+      this.projects = config.projects || [];
+    } catch {
+      this.projects = [];
     }
   }
 
@@ -191,6 +210,7 @@ export class MultiplexerModal extends LitElement {
         cols: window.innerWidth > 768 ? 120 : 80,
         rows: window.innerHeight > 600 ? 30 : 24,
         titleMode: 'static',
+        projectId: this.selectedProjectId,
         metadata: {
           source: 'multiplexer-modal',
         },
@@ -250,6 +270,7 @@ export class MultiplexerModal extends LitElement {
         rows: window.innerHeight > 600 ? 30 : 24,
         titleMode: 'static',
         workingDir,
+        projectId: this.selectedProjectId,
         metadata: {
           source: 'multiplexer-modal-new',
         },
@@ -643,7 +664,22 @@ export class MultiplexerModal extends LitElement {
                 `
             }
 
-            <div class="mt-4 flex gap-2 justify-end">
+            ${
+              this.projects.length > 0
+                ? html`
+                  <div class="mt-4">
+                    <project-selector
+                      .projects=${this.projects}
+                      .selectedProjectId=${this.selectedProjectId}
+                      @project-changed=${(e: CustomEvent) => {
+                        this.selectedProjectId = e.detail.projectId;
+                      }}
+                    ></project-selector>
+                  </div>
+                `
+                : ''
+            }
+            <div class="mt-3 flex gap-2 justify-end">
               <button class="px-4 py-2 border border-border rounded-md bg-bg-secondary text-text text-sm cursor-pointer transition-all hover:bg-bg-tertiary hover:border-primary" @click=${this.handleClose}>Cancel</button>
               ${
                 !this.loading && activeMultiplexer?.available

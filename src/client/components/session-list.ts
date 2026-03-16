@@ -459,6 +459,11 @@ export class SessionList extends LitElement {
     return sortedGroups;
   }
 
+  private handleProjectCreated = () => {
+    // Bubble up to app to reload projects
+    this.dispatchEvent(new CustomEvent('refresh', { bubbles: true }));
+  };
+
   private groupSessionsByProject(sessions: Session[]): Map<string | null, Session[]> {
     const groups = new Map<string | null, Session[]>();
 
@@ -1013,9 +1018,12 @@ export class SessionList extends LitElement {
                             .session=${session}
                             .authClient=${this.authClient}
                             .selected=${session.id === this.selectedSessionId}
+                            .projects=${this.projects}
                             @session-select=${this.handleSessionSelect}
                             @session-killed=${this.handleSessionKilled}
                             @session-kill-error=${this.handleSessionKillError}
+                            @session-project-changed=${this.handleSessionKilled}
+                            @project-created=${this.handleProjectCreated}
                             @session-renamed=${this.handleSessionRenamed}
                             @session-rename-error=${this.handleSessionRenameError}
                             @session-parked=${this.handleSessionKilled}

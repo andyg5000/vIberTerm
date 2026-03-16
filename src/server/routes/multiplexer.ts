@@ -80,8 +80,17 @@ export function createMultiplexerRoutes(options: { ptyManager: PtyManager }): Ro
    */
   router.post('/attach', async (req, res) => {
     try {
-      const { type, sessionName, windowIndex, paneIndex, cols, rows, workingDir, titleMode } =
-        req.body;
+      const {
+        type,
+        sessionName,
+        windowIndex,
+        paneIndex,
+        cols,
+        rows,
+        workingDir,
+        titleMode,
+        projectId,
+      } = req.body;
 
       if (!type || !sessionName) {
         return res.status(400).json({ error: 'Type and session name are required' });
@@ -97,6 +106,7 @@ export function createMultiplexerRoutes(options: { ptyManager: PtyManager }): Ro
         titleMode,
         windowIndex,
         paneIndex,
+        projectId,
       };
 
       const sessionId = await multiplexerManager.attachToSession(type, sessionName, options);

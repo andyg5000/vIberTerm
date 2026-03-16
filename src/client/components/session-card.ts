@@ -13,7 +13,7 @@ import type { PropertyValues } from 'lit';
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { TmuxWindow } from '../../shared/multiplexer-types.js';
-import type { Session } from '../../shared/types.js';
+import type { Project, Session } from '../../shared/types.js';
 import { apiClient } from '../services/api-client.js';
 import type { AuthClient } from '../services/auth-client.js';
 import { sessionActionService } from '../services/session-action-service.js';
@@ -28,6 +28,7 @@ import './vibe-terminal-buffer.js';
 import './clickable-path.js';
 import './inline-edit.js';
 import './confirm-dialog.js';
+import './session-create-form/project-selector.js';
 
 // Magic wand icon constant
 const MAGIC_WAND_ICON = html`
@@ -63,6 +64,7 @@ export class SessionCard extends LitElement {
   @property({ type: Object }) session!: Session;
   @property({ type: Object }) authClient!: AuthClient;
   @property({ type: Boolean }) selected = false;
+  @property({ type: Array }) projects: Project[] = [];
   @state() private killing = false;
   @state() private killingFrame = 0;
   @state() private isSendingPrompt = false;
@@ -376,6 +378,25 @@ export class SessionCard extends LitElement {
     }
   }
 
+  private async handleProjectChange(e: CustomEvent) {
+    e.stopPropagation();
+    const projectId = e.detail.projectId;
+    const result = await sessionActionService.updateSessionProject(
+      this.session.id,
+      projectId,
+      this.authClient
+    );
+    if (result.success) {
+      this.dispatchEvent(
+        new CustomEvent('session-project-changed', {
+          detail: { sessionId: this.session.id, projectId },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+  }
+
   private async handleParkClick(e: Event) {
     e.stopPropagation();
     if (this.parking || this.session.status !== 'running') return;
@@ -682,6 +703,22 @@ export class SessionCard extends LitElement {
           </div>
           <div class="text-xs opacity-75 min-w-0 mt-1">
             <clickable-path .path=${this.session.status === 'parked' && this.session.parkedCwd ? this.session.parkedCwd : this.session.workingDir} .iconSize=${12}></clickable-path>
+          </div>
+          <div class="mt-1.5" @click=${(e: Event) => e.stopPropagation()}>
+            <project-selector
+              .projects=${this.projects}
+              .selectedProjectId=${this.session.projectId}
+              @project-changed=${this.handleProjectChange}
+              @project-created=${(e: CustomEvent) => {
+                this.dispatchEvent(
+                  new CustomEvent('project-created', {
+                    detail: e.detail,
+                    bubbles: true,
+                    composed: true,
+                  })
+                );
+              }}
+            ></project-selector>
           </div>
           ${
             this.tmuxWindows.length > 0
