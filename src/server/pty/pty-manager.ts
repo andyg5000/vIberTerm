@@ -1610,11 +1610,11 @@ export class PtyManager extends EventEmitter {
   /**
    * Capture the current working directory for a session using multiple fallback strategies
    */
-  private captureCwd(
+  private async captureCwd(
     sessionId: string,
     memorySession?: PtySession,
     diskSession?: SessionInfo | null
-  ): string {
+  ): Promise<string> {
     // Strategy 1: In-memory currentWorkingDir (runtime tracking)
     if (memorySession?.currentWorkingDir) {
       logger.debug(
@@ -1623,7 +1623,33 @@ export class PtyManager extends EventEmitter {
       return memorySession.currentWorkingDir;
     }
 
-    // Strategy 2: /proc/<pid>/cwd on Linux
+    // Strategy 2: For tmux sessions, get CWD from the active tmux pane
+    const isTmux =
+      diskSession?.command?.[0] === 'tmux' && diskSession?.command?.[1] === 'attach-session';
+    if (isTmux && diskSession?.command?.[3]) {
+      const tmuxTarget = diskSession.command[3].split(':')[0];
+      try {
+        const { execFile: execFileCb } = await import('child_process');
+        const { promisify: promisifyFn } = await import('util');
+        const execFilePromise = promisifyFn(execFileCb);
+        const { stdout } = await execFilePromise('tmux', [
+          'display-message',
+          '-t',
+          tmuxTarget,
+          '-p',
+          '#{pane_current_path}',
+        ]);
+        const tmuxCwd = stdout.trim();
+        if (tmuxCwd) {
+          logger.debug(`captureCwd: using tmux pane CWD for ${sessionId}: ${tmuxCwd}`);
+          return tmuxCwd;
+        }
+      } catch {
+        logger.debug(`captureCwd: tmux pane CWD failed for ${sessionId}`);
+      }
+    }
+
+    // Strategy 3: /proc/<pid>/cwd on Linux
     const pid = memorySession?.ptyProcess?.pid || diskSession?.pid;
     if (pid && process.platform === 'linux') {
       try {
@@ -1637,13 +1663,13 @@ export class PtyManager extends EventEmitter {
       }
     }
 
-    // Strategy 3: Disk session workingDir
+    // Strategy 4: Disk session workingDir
     if (diskSession?.workingDir) {
       logger.debug(`captureCwd: using disk workingDir for ${sessionId}: ${diskSession.workingDir}`);
       return diskSession.workingDir;
     }
 
-    // Strategy 4: Home directory fallback
+    // Strategy 5: Home directory fallback
     const homedir = os.homedir();
     logger.debug(`captureCwd: falling back to homedir for ${sessionId}: ${homedir}`);
     return homedir;
@@ -1667,7 +1693,7 @@ export class PtyManager extends EventEmitter {
     }
 
     // Capture CWD before shutting down
-    const cwd = this.captureCwd(sessionId, memorySession, diskSession);
+    const cwd = await this.captureCwd(sessionId, memorySession, diskSession);
 
     // Check if process is already dead
     const pid = memorySession?.ptyProcess?.pid || diskSession.pid;
@@ -1682,15 +1708,33 @@ export class PtyManager extends EventEmitter {
       return;
     }
 
+    // Detect tmux session
+    const isTmux =
+      diskSession.command?.[0] === 'tmux' && diskSession.command?.[1] === 'attach-session';
+    const tmuxTarget = isTmux ? diskSession.command?.[3]?.split(':')[0] : null;
+
     // Graceful shutdown: send Escape then /exit
     if (memorySession?.ptyProcess) {
       try {
-        // Send Escape to cancel any pending input
-        memorySession.ptyProcess.write('\x1b');
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        // Send /exit to Claude Code (use \r not \n — PTYs expect carriage return for Enter)
-        memorySession.ptyProcess.write('/exit\r');
+        if (isTmux && tmuxTarget) {
+          // For tmux sessions, send keys directly to the tmux pane
+          const execFileAsync = promisify(execFile);
+          try {
+            await execFileAsync('tmux', ['send-keys', '-t', tmuxTarget, 'Escape', '']);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            await execFileAsync('tmux', ['send-keys', '-t', tmuxTarget, '/exit', 'Enter']);
+          } catch {
+            logger.debug(`tmux send-keys failed for ${sessionId}, falling back to PTY write`);
+            memorySession.ptyProcess.write('\x1b');
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            memorySession.ptyProcess.write('/exit\r');
+          }
+        } else {
+          // For regular sessions, write directly to PTY
+          memorySession.ptyProcess.write('\x1b');
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          memorySession.ptyProcess.write('/exit\r');
+        }
 
         // Poll for up to 30 seconds waiting for graceful exit
         const maxWaitMs = 30000;
@@ -1752,6 +1796,17 @@ export class PtyManager extends EventEmitter {
       }
     }
 
+    // For tmux sessions, kill the tmux session so it doesn't consume resources
+    if (isTmux && tmuxTarget) {
+      try {
+        const execFileAsync = promisify(execFile);
+        await execFileAsync('tmux', ['kill-session', '-t', tmuxTarget]);
+        logger.debug(`Killed tmux session ${tmuxTarget} during park`);
+      } catch {
+        logger.debug(`tmux session ${tmuxTarget} already dead or could not be killed`);
+      }
+    }
+
     // Park the session in session manager
     this.sessionManager.parkSession(sessionId, cwd);
 
@@ -1802,21 +1857,59 @@ export class PtyManager extends EventEmitter {
           : os.homedir();
     }
 
-    // Build the resume command: cd to CWD and run claude --continue
-    const command = ['bash', '-c', `cd ${JSON.stringify(cwd)} && claude --continue`];
+    // Detect if original was a tmux session
+    const isTmux =
+      diskSession.command?.[0] === 'tmux' && diskSession.command?.[1] === 'attach-session';
 
-    // Create a new session reusing the existing session ID
-    const result = await this.createSession(command, {
-      sessionId,
-      name: diskSession.name,
-      workingDir: cwd,
-      cols: options?.cols,
-      rows: options?.rows,
-      gitRepoPath: diskSession.gitRepoPath,
-      gitBranch: diskSession.gitBranch,
-      gitMainRepoPath: diskSession.gitMainRepoPath,
-      projectId: diskSession.projectId,
-    });
+    let result: SessionCreationResult;
+
+    if (isTmux) {
+      // Resume as tmux: create a new tmux session with claude --continue
+      const tmuxSessionName = `resume-${Date.now()}`;
+      const { execFile: execFileCb } = await import('child_process');
+      const { promisify: promisifyFn } = await import('util');
+      const execFilePromise = promisifyFn(execFileCb);
+
+      // Create tmux session in the parked CWD running claude --continue
+      await execFilePromise('tmux', [
+        'new-session',
+        '-d',
+        '-s',
+        tmuxSessionName,
+        '-c',
+        cwd,
+        'claude',
+        '--continue',
+      ]);
+
+      // Attach VibeTmux to the new tmux session
+      const tmuxCommand = ['tmux', 'attach-session', '-t', tmuxSessionName];
+      result = await this.createSession(tmuxCommand, {
+        sessionId,
+        name: diskSession.name,
+        workingDir: cwd,
+        cols: options?.cols,
+        rows: options?.rows,
+        gitRepoPath: diskSession.gitRepoPath,
+        gitBranch: diskSession.gitBranch,
+        gitMainRepoPath: diskSession.gitMainRepoPath,
+        projectId: diskSession.projectId,
+      });
+    } else {
+      // Resume as raw PTY
+      const command = ['bash', '-c', `cd ${JSON.stringify(cwd)} && claude --continue`];
+      result = await this.createSession(command, {
+        sessionId,
+        name: diskSession.name,
+        workingDir: cwd,
+        cols: options?.cols,
+        rows: options?.rows,
+        gitRepoPath: diskSession.gitRepoPath,
+        gitBranch: diskSession.gitBranch,
+        gitMainRepoPath: diskSession.gitMainRepoPath,
+        projectId: diskSession.projectId,
+      });
+    }
 
     // Clear parked state from the session info
     const updatedSession = this.sessionManager.loadSessionInfo(sessionId);
