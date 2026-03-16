@@ -191,6 +191,8 @@ export class CompactSessionCard extends LitElement {
     });
 
     if (result.success) {
+      // Small delay to let server finish creating the new session
+      await new Promise((resolve) => setTimeout(resolve, 500));
       this.dispatchEvent(
         new CustomEvent('session-resumed', {
           detail: { sessionId: this.session.id },
