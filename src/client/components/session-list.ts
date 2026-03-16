@@ -63,6 +63,7 @@ export class SessionList extends LitElement {
   @state() private loadingWorktrees = new Set<string>();
   @state() private showWorktreeDropdown = new Map<string, boolean>();
   @state() private showKillAllConfirm = false;
+  @state() private collapsedGroups = new Set<string>(this.loadCollapsedGroups());
 
   connectedCallback() {
     super.connectedCallback();
@@ -459,6 +460,41 @@ export class SessionList extends LitElement {
     return sortedGroups;
   }
 
+  private loadCollapsedGroups(): string[] {
+    try {
+      const stored = localStorage.getItem('vibetmux_collapsed_groups');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveCollapsedGroups() {
+    try {
+      localStorage.setItem(
+        'vibetmux_collapsed_groups',
+        JSON.stringify(Array.from(this.collapsedGroups))
+      );
+    } catch {
+      // Ignore storage errors
+    }
+  }
+
+  private toggleGroupCollapse(groupKey: string) {
+    const newCollapsed = new Set(this.collapsedGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    this.collapsedGroups = newCollapsed;
+    this.saveCollapsedGroups();
+  }
+
+  private isGroupCollapsed(groupKey: string): boolean {
+    return this.collapsedGroups.has(groupKey);
+  }
+
   private handleProjectCreated = () => {
     // Bubble up to app to reload projects
     this.dispatchEvent(new CustomEvent('refresh', { bubbles: true }));
@@ -507,12 +543,30 @@ export class SessionList extends LitElement {
   private renderGroupHeader(groupKey: string | null, sessionCount: number) {
     if (!groupKey) return '';
 
+    const collapsed = this.isGroupCollapsed(groupKey);
+    const chevron = html`
+      <button
+        class="p-0.5 rounded transition-all hover:bg-bg-elevated text-text-dim"
+        @click=${(e: Event) => {
+          e.stopPropagation();
+          this.toggleGroupCollapse(groupKey);
+        }}
+        title="${collapsed ? 'Expand group' : 'Collapse group'}"
+      >
+        <svg class="w-3.5 h-3.5 transition-transform ${collapsed ? '' : 'rotate-90'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    `;
+
     if (this.sessionGrouping === 'project') {
       return html`
         <project-header
           .projectName=${this.getProjectName(groupKey)}
           .projectColor=${this.getProjectColor(groupKey)}
           .sessionCount=${sessionCount}
+          .collapsed=${collapsed}
+          .chevron=${chevron}
         ></project-header>
       `;
     }
@@ -523,6 +577,8 @@ export class SessionList extends LitElement {
         .followMode=${this.repoFollowMode.get(groupKey)}
         .followModeSelector=${this.renderFollowModeSelector(groupKey, 'running')}
         .worktreeSelector=${this.renderWorktreeSelector(groupKey, 'running')}
+        .collapsed=${collapsed}
+        .chevron=${chevron}
       ></repository-header>
     `;
   }
@@ -991,7 +1047,10 @@ export class SessionList extends LitElement {
                         ([groupKey, groupSessions]) => html`
                           <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
                             ${this.renderGroupHeader(groupKey, groupSessions.length)}
-                            <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
+                            ${
+                              groupKey && this.isGroupCollapsed(groupKey)
+                                ? ''
+                                : html`<div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
                               ${repeat(
                                 groupSessions,
                                 (session) => session.id,
@@ -1036,7 +1095,8 @@ export class SessionList extends LitElement {
                   `;
                                 }
                               )}
-                            </div>
+                            </div>`
+                            }
                           </div>
                         `
                       )}
@@ -1057,7 +1117,10 @@ export class SessionList extends LitElement {
                         ([groupKey, groupSessions]) => html`
                           <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
                             ${this.renderGroupHeader(groupKey, groupSessions.length)}
-                            <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
+                            ${
+                              groupKey && this.isGroupCollapsed(groupKey)
+                                ? ''
+                                : html`<div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
                               ${repeat(
                                 groupSessions,
                                 (session) => session.id,
@@ -1095,7 +1158,8 @@ export class SessionList extends LitElement {
                                   `;
                                 }
                               )}
-                            </div>
+                            </div>`
+                            }
                           </div>
                         `
                       )}
@@ -1116,7 +1180,10 @@ export class SessionList extends LitElement {
                         ([groupKey, groupSessions]) => html`
                           <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
                             ${this.renderGroupHeader(groupKey, groupSessions.length)}
-                            <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
+                            ${
+                              groupKey && this.isGroupCollapsed(groupKey)
+                                ? ''
+                                : html`<div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
                               ${repeat(
                                 groupSessions,
                                 (session) => session.id,
@@ -1154,7 +1221,8 @@ export class SessionList extends LitElement {
                           `;
                                 }
                               )}
-                            </div>
+                            </div>`
+                            }
                           </div>
                         `
                       )}
