@@ -51,7 +51,16 @@ export interface ServerEvent {
 /**
  * Session status enum
  */
-export type SessionStatus = 'starting' | 'running' | 'exited';
+export type SessionStatus = 'starting' | 'running' | 'exited' | 'parked';
+
+/**
+ * Project for grouping sessions
+ */
+export interface Project {
+  id: string;
+  name: string;
+  color?: string;
+}
 
 /**
  * Core session information stored in session.json
@@ -93,6 +102,9 @@ export interface SessionInfo {
    * Sessions with attachedViaVT=true are spawned from within an existing VibeTmux session.
    */
   attachedViaVT?: boolean;
+  parkedAt?: string;
+  parkedCwd?: string;
+  projectId?: string;
 }
 
 /**
@@ -141,6 +153,7 @@ export interface SessionCreateOptions {
   gitHasChanges?: boolean;
   gitIsWorktree?: boolean;
   gitMainRepoPath?: string;
+  projectId?: string;
 }
 
 /**

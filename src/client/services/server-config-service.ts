@@ -7,6 +7,7 @@
  * - Server configuration status
  */
 import { DEFAULT_REPOSITORY_BASE_PATH } from '../../shared/constants.js';
+import type { Project } from '../../shared/types.js';
 import { HttpMethod } from '../../shared/types.js';
 import type { NotificationPreferences, QuickStartCommand } from '../../types/config.js';
 import { createLogger } from '../utils/logger.js';
@@ -19,6 +20,8 @@ export interface ServerConfig {
   serverConfigured?: boolean;
   quickStartCommands?: QuickStartCommand[];
   notificationPreferences?: NotificationPreferences;
+  projects?: Project[];
+  sessionGrouping?: 'repo' | 'project';
 }
 
 export class ServerConfigService {
@@ -203,6 +206,36 @@ export class ServerConfigService {
    */
   async updateNotificationPreferences(preferences: NotificationPreferences): Promise<void> {
     await this.updateConfig({ notificationPreferences: preferences });
+  }
+
+  /**
+   * Get projects
+   */
+  async getProjects(): Promise<Project[]> {
+    const config = await this.loadConfig();
+    return config.projects || [];
+  }
+
+  /**
+   * Update projects
+   */
+  async updateProjects(projects: Project[]): Promise<void> {
+    await this.updateConfig({ projects } as Partial<ServerConfig>);
+  }
+
+  /**
+   * Get session grouping preference
+   */
+  async getSessionGrouping(): Promise<'repo' | 'project'> {
+    const config = await this.loadConfig();
+    return config.sessionGrouping || 'repo';
+  }
+
+  /**
+   * Update session grouping preference
+   */
+  async updateSessionGrouping(grouping: 'repo' | 'project'): Promise<void> {
+    await this.updateConfig({ sessionGrouping: grouping } as Partial<ServerConfig>);
   }
 }
 

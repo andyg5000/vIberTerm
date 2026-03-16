@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { DEFAULT_REPOSITORY_BASE_PATH } from '../../shared/constants.js';
+import type { Project } from '../../shared/types.js';
 import type { NotificationPreferences, QuickStartCommand } from '../../types/config.js';
 import type { ConfigService } from '../services/config-service.js';
 import { createLogger } from '../utils/logger.js';
@@ -31,6 +32,8 @@ export interface AppConfig {
   serverConfigured?: boolean;
   quickStartCommands?: QuickStartCommand[];
   notificationPreferences?: NotificationPreferences;
+  projects?: Project[];
+  sessionGrouping?: 'repo' | 'project';
 }
 
 interface ConfigRouteOptions {
@@ -51,14 +54,15 @@ export function createConfigRoutes(options: ConfigRouteOptions): Router {
   router.get('/config', (_req, res) => {
     try {
       const vibeTmuxConfig = configService.getConfig();
-      const repositoryBasePath =
-        vibeTmuxConfig.repositoryBasePath || DEFAULT_REPOSITORY_BASE_PATH;
+      const repositoryBasePath = vibeTmuxConfig.repositoryBasePath || DEFAULT_REPOSITORY_BASE_PATH;
 
       const config: AppConfig = {
         repositoryBasePath: repositoryBasePath,
         serverConfigured: true, // Always configured when server is running
         quickStartCommands: vibeTmuxConfig.quickStartCommands,
         notificationPreferences: configService.getNotificationPreferences(),
+        projects: configService.getProjects(),
+        sessionGrouping: configService.getSessionGrouping(),
       };
 
       logger.debug('[GET /api/config] Returning app config:', config);
@@ -75,7 +79,13 @@ export function createConfigRoutes(options: ConfigRouteOptions): Router {
    */
   router.put('/config', (req, res) => {
     try {
-      const { quickStartCommands, repositoryBasePath, notificationPreferences } = req.body;
+      const {
+        quickStartCommands,
+        repositoryBasePath,
+        notificationPreferences,
+        projects,
+        sessionGrouping,
+      } = req.body;
       const updates: { [key: string]: unknown } = {};
 
       if (quickStartCommands !== undefined) {
@@ -136,6 +146,42 @@ export function createConfigRoutes(options: ConfigRouteOptions): Router {
         } catch (validationError) {
           logger.error('[PUT /api/config] Invalid notification preferences:', validationError);
           // Skip invalid values instead of returning error
+        }
+      }
+
+      if (projects !== undefined) {
+        try {
+          if (!Array.isArray(projects)) {
+            logger.error('[PUT /api/config] Invalid projects: not an array');
+          } else {
+            const validatedProjects: Project[] = projects
+              .filter((p: unknown) => p && typeof p === 'object')
+              .map((p: Record<string, unknown>) => ({
+                id: String(p.id || ''),
+                name: String(p.name || ''),
+                ...(p.color ? { color: String(p.color) } : {}),
+              }))
+              .filter((p: Project) => p.id && p.name);
+            configService.updateProjects(validatedProjects);
+            updates.projects = validatedProjects;
+            logger.debug('[PUT /api/config] Updated projects:', validatedProjects);
+          }
+        } catch (validationError) {
+          logger.error('[PUT /api/config] Invalid projects:', validationError);
+        }
+      }
+
+      if (sessionGrouping !== undefined) {
+        try {
+          if (sessionGrouping === 'repo' || sessionGrouping === 'project') {
+            configService.updateSessionGrouping(sessionGrouping);
+            updates.sessionGrouping = sessionGrouping;
+            logger.debug('[PUT /api/config] Updated session grouping:', sessionGrouping);
+          } else {
+            logger.error('[PUT /api/config] Invalid session grouping:', sessionGrouping);
+          }
+        } catch (validationError) {
+          logger.error('[PUT /api/config] Error updating session grouping:', validationError);
         }
       }
 

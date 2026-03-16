@@ -195,12 +195,7 @@ describe('Worktree Workflows Integration Tests', () => {
       );
 
       // First enable follow mode
-      await gitRepo.gitExec([
-        'config',
-        '--local',
-        'vibetmux.followWorktree',
-        featureWorktree.path,
-      ]);
+      await gitRepo.gitExec(['config', '--local', 'vibetmux.followWorktree', featureWorktree.path]);
 
       // Disable it
       const response = await request(testServer.app).post('/api/worktrees/follow').send({

@@ -19,8 +19,9 @@ import './session-create-form/quick-start-section.js';
 import './session-create-form/form-options-section.js';
 import './session-create-form/directory-autocomplete.js';
 import './session-create-form/repository-dropdown.js';
+import './session-create-form/project-selector.js';
 import { DEFAULT_REPOSITORY_BASE_PATH } from '../../shared/constants.js';
-import type { Session } from '../../shared/types.js';
+import type { Project, Session } from '../../shared/types.js';
 import { TitleMode } from '../../shared/types.js';
 import type { QuickStartCommand } from '../../types/config.js';
 import type { AuthClient } from '../services/auth-client.js';
@@ -90,6 +91,10 @@ export class SessionCreateForm extends LitElement {
   @state() private availableWorktrees: WorktreeInfo[] = [];
   @state() private isLoadingBranches = false;
   @state() private isLoadingWorktrees = false;
+
+  // Project state
+  @state() private projects: Project[] = [];
+  @state() private selectedProjectId?: string;
 
   // Follow mode state
   @state() private followMode = false;
@@ -243,7 +248,8 @@ export class SessionCreateForm extends LitElement {
     }
 
     try {
-      const quickStartCommands = await this.serverConfigService.getQuickStartCommands();
+      const config = await this.serverConfigService.loadConfig();
+      const quickStartCommands = config.quickStartCommands;
       if (quickStartCommands && quickStartCommands.length > 0) {
         // Map server config to our format
         this.quickStartCommands = quickStartCommands.map((cmd: QuickStartCommand) => ({
@@ -252,9 +258,14 @@ export class SessionCreateForm extends LitElement {
         }));
         logger.debug('Loaded quick start commands from server:', this.quickStartCommands);
       }
+
+      // Load projects
+      if (config.projects) {
+        this.projects = config.projects;
+      }
     } catch (error) {
       logger.error('Failed to load server config:', error);
-      // Keep default quick start commands on error
+      // Keep defaults on error
     }
   }
 
@@ -518,6 +529,11 @@ export class SessionCreateForm extends LitElement {
     // Add session name if provided
     if (this.sessionName?.trim()) {
       sessionData.name = this.sessionName.trim();
+    }
+
+    // Add project ID if selected
+    if (this.selectedProjectId) {
+      sessionData.projectId = this.selectedProjectId;
     }
 
     // Handle follow mode - only enable when a worktree is selected
@@ -1083,6 +1099,24 @@ export class SessionCreateForm extends LitElement {
                 data-testid="session-name-input"
               />
             </div>
+
+            <!-- Project -->
+            ${
+              this.projects.length > 0
+                ? html`
+              <div class="mb-2 sm:mb-3">
+                <project-selector
+                  .projects=${this.projects}
+                  .selectedProjectId=${this.selectedProjectId}
+                  .disabled=${this.disabled || this.isCreating}
+                  @project-changed=${(e: CustomEvent) => {
+                    this.selectedProjectId = e.detail.projectId;
+                  }}
+                ></project-selector>
+              </div>
+            `
+                : ''
+            }
 
             <!-- Command -->
             <div class="mb-2 sm:mb-3">

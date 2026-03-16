@@ -6,7 +6,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { keyed } from 'lit/directives/keyed.js';
 
 // Import shared types
-import type { Session } from '../shared/types.js';
+import type { Project, Session } from '../shared/types.js';
 import { HttpMethod } from '../shared/types.js';
 import { isBrowserShortcut } from './utils/browser-shortcuts.js';
 // Import utilities
@@ -65,6 +65,8 @@ export class VibeTmuxApp extends LitElement {
   @state() private showTmuxModal = false;
   @state() private showSSHKeyManager = false;
   @state() private showSettings = false;
+  @state() private projects: Project[] = [];
+  @state() private sessionGrouping: 'repo' | 'project' = 'repo';
   @state() private isAuthenticated = false;
   @state() private sidebarCollapsed = this.loadSidebarState();
   @state() private sidebarWidth = this.loadSidebarWidth();
@@ -445,6 +447,7 @@ export class VibeTmuxApp extends LitElement {
           this.currentView = 'list';
           await this.initializeServices(noAuthEnabled); // Initialize services with no-auth flag
           await this.loadSessions(); // Wait for sessions to load
+          await this.loadProjectConfig();
           this.startAutoRefresh();
           this.initialLoadComplete = true;
           return;
@@ -486,6 +489,7 @@ export class VibeTmuxApp extends LitElement {
           this.currentView = 'list';
           await this.initializeServices(noAuthEnabled); // Initialize services with no-auth flag
           await this.loadSessions(); // Wait for sessions to load
+          await this.loadProjectConfig();
           this.startAutoRefresh();
           this.initialLoadComplete = true;
           return;
@@ -502,6 +506,7 @@ export class VibeTmuxApp extends LitElement {
       this.currentView = 'list';
       await this.initializeServices(noAuthEnabled); // Initialize services with no-auth flag
       await this.loadSessions(); // Wait for sessions to load
+      await this.loadProjectConfig();
       this.startAutoRefresh();
       this.initialLoadComplete = true;
     } else {
@@ -528,6 +533,7 @@ export class VibeTmuxApp extends LitElement {
     this.currentView = 'list';
     await this.initializeServices(false); // Initialize services after auth (auth is enabled)
     await this.loadSessions();
+    await this.loadProjectConfig();
     this.startAutoRefresh();
     this.initialLoadComplete = true;
 
@@ -817,6 +823,21 @@ export class VibeTmuxApp extends LitElement {
     }
   }
 
+  private async loadProjectConfig() {
+    try {
+      const response = await fetch('/api/config', {
+        headers: authClient.getAuthHeader(),
+      });
+      if (response.ok) {
+        const config = await response.json();
+        this.projects = config.projects || [];
+        this.sessionGrouping = config.sessionGrouping || 'repo';
+      }
+    } catch (error) {
+      logger.warn('Failed to load project config:', error);
+    }
+  }
+
   private startAutoRefresh() {
     // Refresh sessions at configured interval for both list and session views
     this.autoRefreshIntervalId = window.setInterval(() => {
@@ -886,6 +907,7 @@ export class VibeTmuxApp extends LitElement {
 
   private handleRefresh() {
     this.loadSessions();
+    this.loadProjectConfig();
   }
 
   private handleError(e: CustomEvent) {
@@ -1838,6 +1860,8 @@ export class VibeTmuxApp extends LitElement {
               .compactMode=${showSplitView}
               .collapsed=${this.sidebarCollapsed}
               .authClient=${authClient}
+              .projects=${this.projects}
+              .sessionGrouping=${this.sessionGrouping}
               @session-killed=${this.handleSessionKilled}
               @refresh=${this.handleRefresh}
               @error=${this.handleError}
@@ -1912,6 +1936,28 @@ export class VibeTmuxApp extends LitElement {
         }}
         @success=${(e: CustomEvent) => this.showSuccess(e.detail)}
         @error=${(e: CustomEvent) => this.showError(e.detail)}
+        @grouping-change=${(e: CustomEvent) => {
+          this.sessionGrouping = e.detail;
+        }}
+        @project-deleted=${async (e: CustomEvent) => {
+          const deletedProjectId = e.detail;
+          // Unassign sessions from deleted project
+          for (const session of this.sessions) {
+            if (session.projectId === deletedProjectId) {
+              try {
+                await fetch(`/api/sessions/${session.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json', ...authClient.getAuthHeader() },
+                  body: JSON.stringify({ projectId: '' }),
+                });
+              } catch (err) {
+                logger.warn(`Failed to unassign session ${session.id} from deleted project`, err);
+              }
+            }
+          }
+          await this.loadProjectConfig();
+          await this.loadSessions();
+        }}
       ></vt-settings>
 
       <!-- SSH Key Manager Modal -->

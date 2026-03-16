@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { z } from 'zod';
+import type { Project } from '../../shared/types.js';
 import {
   DEFAULT_CONFIG,
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -24,6 +25,15 @@ const ConfigSchema = z.object({
     })
   ),
   repositoryBasePath: z.string().optional(),
+  projects: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        name: z.string().min(1),
+        color: z.string().optional(),
+      })
+    )
+    .optional(),
   // Extended configuration sections - we parse but don't use most of these yet
   server: z
     .object({
@@ -60,6 +70,7 @@ const ConfigSchema = z.object({
           vibrationEnabled: z.boolean(),
         })
         .optional(),
+      sessionGrouping: z.enum(['repo', 'project']).optional(),
     })
     .optional(),
   remoteAccess: z
@@ -292,6 +303,34 @@ export class ConfigService {
 
   public getNotificationPreferences(): NotificationPreferences {
     return this.config.preferences?.notifications || DEFAULT_NOTIFICATION_PREFERENCES;
+  }
+
+  public getProjects(): Project[] {
+    return this.config.projects || [];
+  }
+
+  public updateProjects(projects: Project[]): void {
+    const updatedConfig = { ...this.config, projects };
+    this.config = this.validateConfig(updatedConfig);
+    this.saveConfig();
+    this.notifyConfigChange();
+  }
+
+  public getSessionGrouping(): 'repo' | 'project' {
+    return this.config.preferences?.sessionGrouping || 'repo';
+  }
+
+  public updateSessionGrouping(grouping: 'repo' | 'project'): void {
+    if (!this.config.preferences) {
+      this.config.preferences = {
+        updateChannel: 'stable',
+        showInDock: false,
+        preventSleepWhenRunning: true,
+      };
+    }
+    this.config.preferences.sessionGrouping = grouping;
+    this.saveConfig();
+    this.notifyConfigChange();
   }
 
   public updateNotificationPreferences(notifications: Partial<NotificationPreferences>): void {

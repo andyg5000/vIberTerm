@@ -205,11 +205,128 @@ class SessionActionService {
    * });
    * ```
    */
+  /**
+   * Park a running session for later resumption
+   */
+  async parkSession(session: Session, options: SessionActionOptions): Promise<SessionActionResult> {
+    if (!session || session.status !== 'running') {
+      logger.warn('Cannot park session: invalid state', { session });
+      options.callbacks?.onError?.('Cannot park session: invalid state');
+      return { success: false, error: 'Invalid session state' };
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${session.id}/park`, {
+        method: HttpMethod.POST,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.authClient.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Park failed: ${response.status} ${errorData}`);
+      }
+
+      logger.log('Session parked successfully', { sessionId: session.id });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('session-action', {
+            detail: { action: 'park', sessionId: session.id },
+          })
+        );
+      }
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error parking session', { error, sessionId: session.id });
+      options.callbacks?.onError?.(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Resume a parked session
+   */
+  async resumeSession(
+    session: Session,
+    options: SessionActionOptions
+  ): Promise<SessionActionResult> {
+    if (!session || session.status !== 'parked') {
+      logger.warn('Cannot resume session: invalid state', { session });
+      options.callbacks?.onError?.('Cannot resume session: invalid state');
+      return { success: false, error: 'Invalid session state' };
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${session.id}/resume`, {
+        method: HttpMethod.POST,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.authClient.getAuthHeader(),
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Resume failed: ${response.status} ${errorData}`);
+      }
+
+      logger.log('Session resumed successfully', { sessionId: session.id });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('session-action', {
+            detail: { action: 'resume', sessionId: session.id },
+          })
+        );
+      }
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error resuming session', { error, sessionId: session.id });
+      options.callbacks?.onError?.(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Update a session's project assignment
+   */
+  async updateSessionProject(
+    sessionId: string,
+    projectId: string | undefined,
+    authClient: AuthClient
+  ): Promise<SessionActionResult> {
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}`, {
+        method: HttpMethod.PATCH,
+        headers: {
+          'Content-Type': 'application/json',
+          ...authClient.getAuthHeader(),
+        },
+        body: JSON.stringify({ projectId: projectId || '' }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Update failed: ${response.status}`);
+      }
+
+      logger.log('Session project updated', { sessionId, projectId });
+      return { success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error updating session project', { error, sessionId });
+      return { success: false, error: errorMessage };
+    }
+  }
+
   async clearSession(
     session: Session,
     options: SessionActionOptions
   ): Promise<SessionActionResult> {
-    if (!session || session.status !== 'exited') {
+    if (!session || (session.status !== 'exited' && session.status !== 'parked')) {
       logger.warn('Cannot clear session: invalid state', { session });
       options.callbacks?.onError?.('Cannot clear session: invalid state');
       return { success: false, error: 'Invalid session state' };
@@ -278,7 +395,7 @@ class SessionActionService {
   ): Promise<SessionActionResult> {
     if (session.status === 'running') {
       return this.terminateSession(session, options);
-    } else if (session.status === 'exited') {
+    } else if (session.status === 'exited' || session.status === 'parked') {
       return this.clearSession(session, options);
     } else {
       const errorMessage = `Cannot delete session with status: ${session.status}`;

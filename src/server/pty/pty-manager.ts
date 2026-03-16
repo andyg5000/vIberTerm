@@ -11,6 +11,7 @@ import { EventEmitter, once } from 'events';
 import * as fs from 'fs';
 import * as net from 'net';
 import type { IPty, IPtyForkOptions } from 'node-pty';
+import * as os from 'os';
 import * as path from 'path';
 
 // Import node-pty with fallback support
@@ -364,6 +365,7 @@ export class PtyManager extends EventEmitter {
         gitIsWorktree: options.gitIsWorktree,
         gitMainRepoPath: options.gitMainRepoPath,
         attachedViaVT,
+        projectId: options.projectId,
       };
 
       // Save initial session info
@@ -1602,6 +1604,337 @@ export class PtyManager extends EventEmitter {
         'KILL_FAILED',
         sessionId
       );
+    }
+  }
+
+  /**
+   * Capture the current working directory for a session using multiple fallback strategies
+   */
+  private async captureCwd(
+    sessionId: string,
+    memorySession?: PtySession,
+    diskSession?: SessionInfo | null
+  ): Promise<string> {
+    // Strategy 1: For tmux sessions, ALWAYS get CWD from the tmux pane first
+    // The in-memory currentWorkingDir tracks the wrapper process, not the pane
+    const isTmux =
+      diskSession?.command?.[0] === 'tmux' && diskSession?.command?.[1] === 'attach-session';
+    if (isTmux && diskSession?.command?.[3]) {
+      const tmuxTarget = diskSession.command[3].split(':')[0];
+      try {
+        const execFileAsync = promisify(execFile);
+        const { stdout } = await execFileAsync('tmux', [
+          'display-message',
+          '-t',
+          tmuxTarget,
+          '-p',
+          '#{pane_current_path}',
+        ]);
+        const tmuxCwd = stdout.trim();
+        if (tmuxCwd) {
+          logger.debug(`captureCwd: using tmux pane CWD for ${sessionId}: ${tmuxCwd}`);
+          return tmuxCwd;
+        }
+      } catch {
+        logger.debug(`captureCwd: tmux pane CWD failed for ${sessionId}`);
+      }
+    }
+
+    // Strategy 2: In-memory currentWorkingDir (runtime tracking, non-tmux sessions)
+    if (memorySession?.currentWorkingDir) {
+      logger.debug(
+        `captureCwd: using in-memory CWD for ${sessionId}: ${memorySession.currentWorkingDir}`
+      );
+      return memorySession.currentWorkingDir;
+    }
+
+    // Strategy 3: /proc/<pid>/cwd on Linux
+    const pid = memorySession?.ptyProcess?.pid || diskSession?.pid;
+    if (pid && process.platform === 'linux') {
+      try {
+        const cwd = fs.readlinkSync(`/proc/${pid}/cwd`);
+        if (cwd) {
+          logger.debug(`captureCwd: using /proc/${pid}/cwd for ${sessionId}: ${cwd}`);
+          return cwd;
+        }
+      } catch {
+        logger.debug(`captureCwd: /proc/${pid}/cwd failed for ${sessionId}`);
+      }
+    }
+
+    // Strategy 4: Disk session workingDir
+    if (diskSession?.workingDir) {
+      logger.debug(`captureCwd: using disk workingDir for ${sessionId}: ${diskSession.workingDir}`);
+      return diskSession.workingDir;
+    }
+
+    // Strategy 5: Home directory fallback
+    const homedir = os.homedir();
+    logger.debug(`captureCwd: falling back to homedir for ${sessionId}: ${homedir}`);
+    return homedir;
+  }
+
+  /**
+   * Park a session - gracefully shut down Claude Code and save state for later resume
+   */
+  async parkSession(sessionId: string): Promise<void> {
+    const memorySession = this.sessions.get(sessionId);
+    const diskSession = this.sessionManager.loadSessionInfo(sessionId);
+
+    if (!diskSession) {
+      throw new PtyError(`Session ${sessionId} not found`, 'SESSION_NOT_FOUND', sessionId);
+    }
+
+    // If already parked, nothing to do
+    if (diskSession.status === 'parked') {
+      logger.debug(`Session ${sessionId} is already parked`);
+      return;
+    }
+
+    // Capture CWD before shutting down
+    const cwd = await this.captureCwd(sessionId, memorySession, diskSession);
+
+    // Check if process is already dead
+    const pid = memorySession?.ptyProcess?.pid || diskSession.pid;
+    if (!pid || !ProcessUtils.isProcessRunning(pid)) {
+      // Process already exited - park with last known CWD
+      logger.debug(`Session ${sessionId} process already dead, parking with last known CWD`);
+      this.sessionManager.parkSession(sessionId, cwd);
+      if (memorySession) {
+        this.cleanupSessionResources(memorySession);
+        this.sessions.delete(sessionId);
+      }
+      return;
+    }
+
+    // Detect tmux session
+    const isTmux =
+      diskSession.command?.[0] === 'tmux' && diskSession.command?.[1] === 'attach-session';
+    const tmuxTarget = isTmux ? diskSession.command?.[3]?.split(':')[0] : null;
+
+    // Graceful shutdown: send Escape then /exit
+    if (memorySession?.ptyProcess) {
+      try {
+        if (isTmux && tmuxTarget) {
+          // For tmux sessions, send keys directly to the tmux pane
+          const execFileAsync = promisify(execFile);
+          try {
+            await execFileAsync('tmux', ['send-keys', '-t', tmuxTarget, 'Escape', '']);
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            await execFileAsync('tmux', ['send-keys', '-t', tmuxTarget, '/exit', 'Enter']);
+          } catch {
+            logger.debug(`tmux send-keys failed for ${sessionId}, falling back to PTY write`);
+            memorySession.ptyProcess.write('\x1b');
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            memorySession.ptyProcess.write('/exit\r');
+          }
+        } else {
+          // For regular sessions, write directly to PTY
+          memorySession.ptyProcess.write('\x1b');
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          memorySession.ptyProcess.write('/exit\r');
+        }
+
+        // Poll for up to 30 seconds waiting for graceful exit
+        const maxWaitMs = 30000;
+        const checkIntervalMs = 1000;
+        const maxChecks = maxWaitMs / checkIntervalMs;
+        let exited = false;
+
+        for (let i = 0; i < maxChecks; i++) {
+          await new Promise((resolve) => setTimeout(resolve, checkIntervalMs));
+          if (!ProcessUtils.isProcessRunning(pid)) {
+            logger.debug(
+              chalk.green(
+                `Session ${sessionId} exited gracefully after ${(i + 1) * checkIntervalMs}ms`
+              )
+            );
+            exited = true;
+            break;
+          }
+          logger.debug(`Session ${sessionId} still running after ${(i + 1) * checkIntervalMs}ms`);
+        }
+
+        // If still running after 30s, force terminate
+        if (!exited) {
+          logger.debug(
+            chalk.yellow(`Session ${sessionId} did not exit gracefully, sending SIGTERM`)
+          );
+          try {
+            memorySession.ptyProcess.kill('SIGTERM');
+          } catch {
+            // Ignore
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          if (ProcessUtils.isProcessRunning(pid)) {
+            logger.debug(chalk.yellow(`Session ${sessionId} still alive, sending SIGKILL`));
+            try {
+              memorySession.ptyProcess.kill('SIGKILL');
+            } catch {
+              // Ignore
+            }
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        }
+      } catch (error) {
+        logger.warn(`Error during graceful park of session ${sessionId}:`, error);
+      }
+    } else if (pid && ProcessUtils.isProcessRunning(pid)) {
+      // External session (no in-memory PTY) — kill by PID to avoid orphaned process
+      logger.debug(chalk.yellow(`Killing external session ${sessionId} (PID: ${pid}) for park`));
+      try {
+        process.kill(pid, 'SIGTERM');
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        if (ProcessUtils.isProcessRunning(pid)) {
+          process.kill(pid, 'SIGKILL');
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch {
+        logger.warn(`Failed to kill external session ${sessionId} PID ${pid} during park`);
+      }
+    }
+
+    // For tmux sessions, kill the tmux session so it doesn't consume resources
+    if (isTmux && tmuxTarget) {
+      try {
+        const execFileAsync = promisify(execFile);
+        await execFileAsync('tmux', ['kill-session', '-t', tmuxTarget]);
+        logger.debug(`Killed tmux session ${tmuxTarget} during park`);
+      } catch {
+        logger.debug(`tmux session ${tmuxTarget} already dead or could not be killed`);
+      }
+    }
+
+    // Park the session in session manager
+    this.sessionManager.parkSession(sessionId, cwd);
+
+    // Clean up in-memory session
+    if (memorySession) {
+      this.cleanupSessionResources(memorySession);
+      this.sessions.delete(sessionId);
+    }
+
+    // Clean up socket connection
+    const socket = this.inputSocketClients.get(sessionId);
+    if (socket) {
+      socket.destroy();
+      this.inputSocketClients.delete(sessionId);
+    }
+    this.lastInputTimestamps.delete(sessionId);
+
+    logger.log(chalk.blue(`Session ${sessionId} parked successfully (CWD: ${cwd})`));
+  }
+
+  /**
+   * Resume a parked session
+   */
+  async resumeSession(
+    sessionId: string,
+    options?: { cols?: number; rows?: number }
+  ): Promise<SessionCreationResult> {
+    const diskSession = this.sessionManager.loadSessionInfo(sessionId);
+    if (!diskSession) {
+      throw new PtyError(`Session ${sessionId} not found`, 'SESSION_NOT_FOUND', sessionId);
+    }
+
+    if (diskSession.status !== 'parked') {
+      throw new PtyError(
+        `Session ${sessionId} is not parked (status: ${diskSession.status})`,
+        'INVALID_SESSION_STATE',
+        sessionId
+      );
+    }
+
+    // Determine CWD - fall back through parkedCwd → workingDir → homedir
+    let cwd = diskSession.parkedCwd || diskSession.workingDir || os.homedir();
+    if (!fs.existsSync(cwd)) {
+      logger.warn(`Parked CWD ${cwd} no longer exists, falling back`);
+      cwd =
+        diskSession.workingDir && fs.existsSync(diskSession.workingDir)
+          ? diskSession.workingDir
+          : os.homedir();
+    }
+
+    // Detect if original was a tmux session
+    const isTmux =
+      diskSession.command?.[0] === 'tmux' && diskSession.command?.[1] === 'attach-session';
+
+    let result: SessionCreationResult;
+
+    if (isTmux) {
+      // Resume as tmux: create a new tmux session with claude --continue
+      const tmuxSessionName = `resume-${Date.now()}`;
+      const execFileAsync = promisify(execFile);
+
+      // Create tmux session in the parked CWD running claude --continue
+      // Use bash -lc to ensure PATH includes user's profile (nvm, etc.)
+      await execFileAsync('tmux', [
+        'new-session',
+        '-d',
+        '-s',
+        tmuxSessionName,
+        '-c',
+        cwd,
+        'bash',
+        '-lc',
+        'clear && claude --continue',
+      ]);
+
+      // Attach VibeTmux to the new tmux session
+      const tmuxCommand = ['tmux', 'attach-session', '-t', tmuxSessionName];
+      result = await this.createSession(tmuxCommand, {
+        sessionId,
+        name: diskSession.name,
+        workingDir: cwd,
+        cols: options?.cols,
+        rows: options?.rows,
+        gitRepoPath: diskSession.gitRepoPath,
+        gitBranch: diskSession.gitBranch,
+        gitMainRepoPath: diskSession.gitMainRepoPath,
+        projectId: diskSession.projectId,
+      });
+    } else {
+      // Resume as raw PTY
+      const command = ['bash', '-c', `cd ${JSON.stringify(cwd)} && claude --continue`];
+      result = await this.createSession(command, {
+        sessionId,
+        name: diskSession.name,
+        workingDir: cwd,
+        cols: options?.cols,
+        rows: options?.rows,
+        gitRepoPath: diskSession.gitRepoPath,
+        gitBranch: diskSession.gitBranch,
+        gitMainRepoPath: diskSession.gitMainRepoPath,
+        projectId: diskSession.projectId,
+      });
+    }
+
+    // Clear parked state from the session info
+    const updatedSession = this.sessionManager.loadSessionInfo(sessionId);
+    if (updatedSession) {
+      updatedSession.parkedAt = undefined;
+      updatedSession.parkedCwd = undefined;
+      if (diskSession.projectId) {
+        updatedSession.projectId = diskSession.projectId;
+      }
+      this.sessionManager.saveSessionInfo(sessionId, updatedSession);
+    }
+
+    logger.log(chalk.green(`Session ${sessionId} resumed from parked state`));
+    return result;
+  }
+
+  /**
+   * Update session project ID
+   */
+  updateSessionProjectId(sessionId: string, projectId: string | undefined): void {
+    this.sessionManager.updateSessionProjectId(sessionId, projectId);
+
+    // Update in-memory session if it exists
+    const memorySession = this.sessions.get(sessionId);
+    if (memorySession?.sessionInfo) {
+      memorySession.sessionInfo.projectId = projectId;
     }
   }
 
