@@ -35,6 +35,8 @@ export class CompactSessionCard extends LitElement {
   @property({ type: String }) sessionType: 'running' | 'exited' | 'parked' = 'running';
   @property({ type: Number }) sessionNumber?: number;
   @state() private showKillConfirm = false;
+  @state() private parking = false;
+  @state() private resuming = false;
   @state() private tmuxWindows: TmuxWindow[] = [];
   private tmuxPollInterval?: ReturnType<typeof setInterval>;
 
@@ -148,6 +150,58 @@ export class CompactSessionCard extends LitElement {
     );
   }
 
+  private async handlePark(e: Event) {
+    e.stopPropagation();
+    if (this.parking || this.session.status !== 'running') return;
+
+    this.parking = true;
+    const result = await sessionActionService.parkSession(this.session, {
+      authClient: this.authClient,
+      callbacks: {
+        onError: () => {
+          this.parking = false;
+        },
+      },
+    });
+
+    if (result.success) {
+      this.dispatchEvent(
+        new CustomEvent('session-parked', {
+          detail: { sessionId: this.session.id },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    this.parking = false;
+  }
+
+  private async handleResume(e: Event) {
+    e.stopPropagation();
+    if (this.resuming || this.session.status !== 'parked') return;
+
+    this.resuming = true;
+    const result = await sessionActionService.resumeSession(this.session, {
+      authClient: this.authClient,
+      callbacks: {
+        onError: () => {
+          this.resuming = false;
+        },
+      },
+    });
+
+    if (result.success) {
+      this.dispatchEvent(
+        new CustomEvent('session-resumed', {
+          detail: { sessionId: this.session.id },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    this.resuming = false;
+  }
+
   private async handleDelete(e: Event) {
     e.stopPropagation();
 
@@ -258,6 +312,55 @@ export class CompactSessionCard extends LitElement {
 
     // For exited sessions, just show the name
     return html`<span title="${displayName}">${displayName}</span>${tmuxBadge}`;
+  }
+
+  private renderParkResumeButton() {
+    if (this.session.status === 'running') {
+      return html`
+        <button
+          class="btn-ghost text-blue-400 p-1.5 rounded-md transition-all hover:bg-blue-400/20 hover:shadow-sm"
+          @click=${this.handlePark}
+          ?disabled=${this.parking}
+          title="Park session"
+          data-testid="compact-park-button"
+        >
+          ${
+            this.parking
+              ? html`<span class="block w-4 h-4 animate-spin">⠋</span>`
+              : html`
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              `
+          }
+        </button>
+      `;
+    }
+
+    if (this.session.status === 'parked') {
+      return html`
+        <button
+          class="btn-ghost text-status-success p-1.5 rounded-md transition-all hover:bg-status-success/20 hover:shadow-sm"
+          @click=${this.handleResume}
+          ?disabled=${this.resuming}
+          title="Resume session"
+          data-testid="compact-resume-button"
+        >
+          ${
+            this.resuming
+              ? html`<span class="block w-4 h-4 animate-spin">⠋</span>`
+              : html`
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              `
+          }
+        </button>
+      `;
+    }
+
+    return '';
   }
 
   private renderDeleteButton() {
@@ -387,7 +490,8 @@ export class CompactSessionCard extends LitElement {
           ${
             isTouchDevice
               ? html`
-                <!-- Touch devices: Close button left of time -->
+                <!-- Touch devices: Action buttons left of time -->
+                ${this.renderParkResumeButton()}
                 ${this.renderDeleteButton()}
                 <div class="text-xs text-text-${isExited ? 'dim' : 'muted'} font-mono">
                   ${session.startedAt ? formatSessionDuration(session.startedAt, session.status === 'exited' ? session.lastModified : undefined) : ''}
@@ -401,6 +505,7 @@ export class CompactSessionCard extends LitElement {
                 
                 <!-- Desktop: Buttons show on hover -->
                 <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0">
+                  ${this.renderParkResumeButton()}
                   ${this.renderDeleteButton()}
                 </div>
               `

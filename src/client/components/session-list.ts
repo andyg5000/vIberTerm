@@ -1010,6 +1010,7 @@ export class SessionList extends LitElement {
                             @session-select=${this.handleSessionSelect}
                             @session-rename=${this.handleSessionRenamed}
                             @session-delete=${this.handleSessionKilled}
+                            @session-parked=${this.handleSessionKilled}
                           ></compact-session-card>
                         `
                         : html`
@@ -1074,6 +1075,7 @@ export class SessionList extends LitElement {
                                             .sessionNumber=${currentIndex}
                                             @session-select=${this.handleSessionSelect}
                                             @session-cleanup=${this.handleSessionKilled}
+                                            @session-resumed=${this.handleSessionKilled}
                                           ></compact-session-card>
                                         `
                                         : html`
