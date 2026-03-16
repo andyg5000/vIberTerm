@@ -1868,6 +1868,7 @@ export class PtyManager extends EventEmitter {
       const execFileAsync = promisify(execFile);
 
       // Create tmux session in the parked CWD running claude --continue
+      // Use bash -lc to ensure PATH includes user's profile (nvm, etc.)
       await execFileAsync('tmux', [
         'new-session',
         '-d',
@@ -1875,8 +1876,9 @@ export class PtyManager extends EventEmitter {
         tmuxSessionName,
         '-c',
         cwd,
-        'claude',
-        '--continue',
+        'bash',
+        '-lc',
+        'claude --continue',
       ]);
 
       // Attach VibeTmux to the new tmux session
