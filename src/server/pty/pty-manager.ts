@@ -1689,8 +1689,8 @@ export class PtyManager extends EventEmitter {
         memorySession.ptyProcess.write('\x1b');
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        // Send /exit to Claude Code
-        memorySession.ptyProcess.write('/exit\n');
+        // Send /exit to Claude Code (use \r not \n — PTYs expect carriage return for Enter)
+        memorySession.ptyProcess.write('/exit\r');
 
         // Poll for up to 30 seconds waiting for graceful exit
         const maxWaitMs = 30000;
