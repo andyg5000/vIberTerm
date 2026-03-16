@@ -277,6 +277,7 @@ export class TmuxManager {
       cols: options?.cols || 80,
       rows: options?.rows || 24,
       titleMode: options?.titleMode || TitleMode.STATIC,
+      projectId: options?.projectId,
     };
 
     const session = await this.ptyManager.createSession(tmuxCommand, sessionOptions);
