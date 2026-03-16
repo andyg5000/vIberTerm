@@ -19,13 +19,14 @@
 import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
-import type { Session } from '../../shared/types.js';
+import type { Project, Session } from '../../shared/types.js';
 import { HttpMethod } from '../../shared/types.js';
 import type { AuthClient } from '../services/auth-client.js';
 import type { Worktree } from '../services/git-service.js';
 import './session-card.js';
 import './inline-edit.js';
 import './session-list/compact-session-card.js';
+import './session-list/project-header.js';
 import './session-list/repository-header.js';
 import './clickable-path.js';
 import './confirm-dialog.js';
@@ -51,6 +52,8 @@ export class SessionList extends LitElement {
   @property({ type: String }) selectedSessionId: string | null = null;
   @property({ type: Boolean }) compactMode = false;
   @property({ type: String }) activeSessionId: string | null = null;
+  @property({ type: Array }) projects: Project[] = [];
+  @property({ type: String }) sessionGrouping: 'repo' | 'project' = 'repo';
 
   @state() private cleaningExited = false;
   @state() private repoFollowMode = new Map<string, string | undefined>();
@@ -122,10 +125,9 @@ export class SessionList extends LitElement {
     const running = this.deduplicateTmuxSessions(
       this.sessions.filter((s) => s.status === 'running' || s.status === 'starting')
     );
-    const exited = this.deduplicateTmuxSessions(
-      this.sessions.filter((s) => s.status === 'exited')
-    );
-    return this.hideExited ? running : running.concat(exited);
+    const parked = this.deduplicateTmuxSessions(this.sessions.filter((s) => s.status === 'parked'));
+    const exited = this.deduplicateTmuxSessions(this.sessions.filter((s) => s.status === 'exited'));
+    return this.hideExited ? running.concat(parked) : running.concat(parked).concat(exited);
   }
 
   /**
@@ -455,6 +457,79 @@ export class SessionList extends LitElement {
     });
 
     return sortedGroups;
+  }
+
+  private groupSessionsByProject(sessions: Session[]): Map<string | null, Session[]> {
+    const groups = new Map<string | null, Session[]>();
+
+    sessions.forEach((session) => {
+      const groupKey = session.projectId || null;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, []);
+      }
+      groups.get(groupKey)!.push(session);
+    });
+
+    // Sort: unassigned first, then alphabetically by project name
+    const sortedGroups = new Map<string | null, Session[]>();
+
+    if (groups.has(null)) {
+      sortedGroups.set(null, groups.get(null)!);
+    }
+
+    const projectIds = Array.from(groups.keys()).filter(
+      (key): key is string => typeof key === 'string'
+    );
+    projectIds.sort((a, b) => {
+      const nameA = this.getProjectName(a);
+      const nameB = this.getProjectName(b);
+      return nameA.localeCompare(nameB);
+    });
+
+    projectIds.forEach((id) => {
+      sortedGroups.set(id, groups.get(id)!);
+    });
+
+    return sortedGroups;
+  }
+
+  private getActiveGrouping(sessions: Session[]): Map<string | null, Session[]> {
+    return this.sessionGrouping === 'project'
+      ? this.groupSessionsByProject(sessions)
+      : this.groupSessionsByRepo(sessions);
+  }
+
+  private renderGroupHeader(groupKey: string | null, sessionCount: number) {
+    if (!groupKey) return '';
+
+    if (this.sessionGrouping === 'project') {
+      return html`
+        <project-header
+          .projectName=${this.getProjectName(groupKey)}
+          .projectColor=${this.getProjectColor(groupKey)}
+          .sessionCount=${sessionCount}
+        ></project-header>
+      `;
+    }
+
+    return html`
+      <repository-header
+        .repoPath=${groupKey}
+        .followMode=${this.repoFollowMode.get(groupKey)}
+        .followModeSelector=${this.renderFollowModeSelector(groupKey, 'running')}
+        .worktreeSelector=${this.renderWorktreeSelector(groupKey, 'running')}
+      ></repository-header>
+    `;
+  }
+
+  private getProjectName(projectId: string): string {
+    const project = this.projects.find((p) => p.id === projectId);
+    return project?.name || projectId;
+  }
+
+  private getProjectColor(projectId: string): string | undefined {
+    const project = this.projects.find((p) => p.id === projectId);
+    return project?.color;
   }
 
   private getRepoName(repoPath: string): string {
@@ -801,13 +876,19 @@ export class SessionList extends LitElement {
   render() {
     // Group sessions by status, deduplicating tmux sessions
     const runningSessions = this.deduplicateTmuxSessions(
-      this.sessions.filter((session) => session.status === 'running' || session.status === 'starting')
+      this.sessions.filter(
+        (session) => session.status === 'running' || session.status === 'starting'
+      )
+    );
+    const parkedSessions = this.deduplicateTmuxSessions(
+      this.sessions.filter((session) => session.status === 'parked')
     );
     const exitedSessions = this.deduplicateTmuxSessions(
       this.sessions.filter((session) => session.status === 'exited')
     );
 
     const hasRunningSessions = runningSessions.length > 0;
+    const hasParkedSessions = parkedSessions.length > 0;
     const hasExitedSessions = exitedSessions.length > 0;
     const showExitedSection = !this.hideExited && hasExitedSessions;
 
@@ -819,7 +900,7 @@ export class SessionList extends LitElement {
         ${this.renderActiveSessionInfo()}
         <div class="p-4 pt-5">
         ${
-          !hasRunningSessions && (!hasExitedSessions || this.hideExited)
+          !hasRunningSessions && !hasParkedSessions && (!hasExitedSessions || this.hideExited)
             ? html`
               <div class="text-text-muted text-center py-8">
                 ${
@@ -901,24 +982,13 @@ export class SessionList extends LitElement {
                       <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">
                         Running <span class="text-text-dim">(${runningSessions.length})</span>
                       </h3>
-                      ${Array.from(this.groupSessionsByRepo(runningSessions)).map(
-                        ([repoPath, repoSessions]) => html`
-                          <div class="${repoPath ? 'mb-6 mt-6' : 'mb-4'}">
-                            ${
-                              repoPath
-                                ? html`
-                                  <repository-header
-                                    .repoPath=${repoPath}
-                                    .followMode=${this.repoFollowMode.get(repoPath)}
-                                    .followModeSelector=${this.renderFollowModeSelector(repoPath, 'running')}
-                                    .worktreeSelector=${this.renderWorktreeSelector(repoPath, 'running')}
-                                  ></repository-header>
-                                `
-                                : ''
-                            }
+                      ${Array.from(this.getActiveGrouping(runningSessions)).map(
+                        ([groupKey, groupSessions]) => html`
+                          <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
+                            ${this.renderGroupHeader(groupKey, groupSessions.length)}
                             <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
                               ${repeat(
-                                repoSessions,
+                                groupSessions,
                                 (session) => session.id,
                                 (session) => {
                                   const currentIndex = ++sessionIndex;
@@ -948,6 +1018,8 @@ export class SessionList extends LitElement {
                             @session-kill-error=${this.handleSessionKillError}
                             @session-renamed=${this.handleSessionRenamed}
                             @session-rename-error=${this.handleSessionRenameError}
+                            @session-parked=${this.handleSessionKilled}
+                            @session-resumed=${this.handleSessionKilled}
                           >
                           </session-card>
                         `
@@ -963,33 +1035,80 @@ export class SessionList extends LitElement {
                   `
                   : ''
               }
-              
+
+              <!-- Parked Sessions -->
+              ${
+                hasParkedSessions
+                  ? html`
+                    <div class="mb-6 ${!hasRunningSessions ? 'mt-2' : ''}">
+                      <h3 class="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-4">
+                        Parked <span class="text-text-dim">(${parkedSessions.length})</span>
+                      </h3>
+                      ${Array.from(this.getActiveGrouping(parkedSessions)).map(
+                        ([groupKey, groupSessions]) => html`
+                          <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
+                            ${this.renderGroupHeader(groupKey, groupSessions.length)}
+                            <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
+                              ${repeat(
+                                groupSessions,
+                                (session) => session.id,
+                                (session) => {
+                                  const currentIndex = ++sessionIndex;
+                                  return html`
+                                    ${
+                                      this.compactMode
+                                        ? html`
+                                          <compact-session-card
+                                            .session=${session}
+                                            .authClient=${this.authClient}
+                                            .selected=${session.id === this.selectedSessionId}
+                                            .sessionType=${'parked'}
+                                            .sessionNumber=${currentIndex}
+                                            @session-select=${this.handleSessionSelect}
+                                            @session-cleanup=${this.handleSessionKilled}
+                                          ></compact-session-card>
+                                        `
+                                        : html`
+                                          <session-card
+                                            .session=${session}
+                                            .authClient=${this.authClient}
+                                            .selected=${session.id === this.selectedSessionId}
+                                            @session-select=${this.handleSessionSelect}
+                                            @session-killed=${this.handleSessionKilled}
+                                            @session-kill-error=${this.handleSessionKillError}
+                                            @session-parked=${this.handleSessionKilled}
+                                            @session-resumed=${this.handleSessionKilled}
+                                          >
+                                          </session-card>
+                                        `
+                                    }
+                                  `;
+                                }
+                              )}
+                            </div>
+                          </div>
+                        `
+                      )}
+                    </div>
+                  `
+                  : ''
+              }
+
               <!-- Exited Sessions -->
               ${
                 showExitedSection && hasExitedSessions
                   ? html`
-                    <div class="${!hasRunningSessions ? 'mt-2' : ''}">
+                    <div class="${!hasRunningSessions && !hasParkedSessions ? 'mt-2' : ''}">
                       <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-4">
                         Exited <span class="text-text-dim">(${exitedSessions.length})</span>
                       </h3>
-                      ${Array.from(this.groupSessionsByRepo(exitedSessions)).map(
-                        ([repoPath, repoSessions]) => html`
-                          <div class="${repoPath ? 'mb-6 mt-6' : 'mb-4'}">
-                            ${
-                              repoPath
-                                ? html`
-                                  <repository-header
-                                    .repoPath=${repoPath}
-                                    .followMode=${this.repoFollowMode.get(repoPath)}
-                                    .followModeSelector=${this.renderFollowModeSelector(repoPath, 'exited')}
-                                    .worktreeSelector=${this.renderWorktreeSelector(repoPath, 'exited')}
-                                  ></repository-header>
-                                `
-                                : ''
-                            }
+                      ${Array.from(this.getActiveGrouping(exitedSessions)).map(
+                        ([groupKey, groupSessions]) => html`
+                          <div class="${groupKey ? 'mb-6 mt-6' : 'mb-4'}">
+                            ${this.renderGroupHeader(groupKey, groupSessions.length)}
                             <div class="${this.compactMode ? '' : 'session-flex-responsive'} relative">
                               ${repeat(
-                                repoSessions,
+                                groupSessions,
                                 (session) => session.id,
                                 (session) => {
                                   const currentIndex = ++sessionIndex;
@@ -1049,6 +1168,9 @@ export class SessionList extends LitElement {
     const runningSessions = this.deduplicateTmuxSessions(
       this.sessions.filter((session) => session.status === 'running')
     );
+    const parkedSessionCount = this.sessions.filter(
+      (session) => session.status === 'parked'
+    ).length;
 
     // If no sessions at all, don't show controls
     if (this.sessions.length === 0) return '';
@@ -1064,6 +1186,13 @@ export class SessionList extends LitElement {
                 runningSessions.length > 0
                   ? html`
                 <span class="text-status-success whitespace-nowrap">${runningSessions.length} Running</span>
+              `
+                  : ''
+              }
+              ${
+                parkedSessionCount > 0
+                  ? html`
+                <span class="text-blue-400 whitespace-nowrap">${parkedSessionCount} Parked</span>
               `
                   : ''
               }
@@ -1136,7 +1265,9 @@ export class SessionList extends LitElement {
               <button
                 class="font-mono text-xs px-3 py-1.5 rounded-md border transition-all duration-200 border-status-error bg-status-error/10 text-status-error hover:bg-status-error/20 hover:shadow-glow-error-sm active:scale-95"
                 id="kill-all-button"
-                @click=${() => { this.showKillAllConfirm = true; }}
+                @click=${() => {
+                  this.showKillAllConfirm = true;
+                }}
                 data-testid="kill-all-button"
               >
                 Kill All
@@ -1147,8 +1278,13 @@ export class SessionList extends LitElement {
                 .message=${`Kill all ${runningSessions.length} running session${runningSessions.length === 1 ? '' : 's'}? This cannot be undone.`}
                 .confirmLabel=${'Kill All'}
                 .danger=${true}
-                @confirm=${() => { this.showKillAllConfirm = false; this.dispatchEvent(new CustomEvent('kill-all-sessions')); }}
-                @cancel=${() => { this.showKillAllConfirm = false; }}
+                @confirm=${() => {
+                  this.showKillAllConfirm = false;
+                  this.dispatchEvent(new CustomEvent('kill-all-sessions'));
+                }}
+                @cancel=${() => {
+                  this.showKillAllConfirm = false;
+                }}
               ></confirm-dialog>
             `
                 : ''

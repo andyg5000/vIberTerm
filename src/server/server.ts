@@ -1018,9 +1018,7 @@ export async function createApp(): Promise<AppInstance> {
             `  1. Run server on different port: ${chalk.cyan('pnpm run dev:server --port 4021')}`
           );
           logger.error(`  2. Use environment variable: ${chalk.cyan('PORT=4021 pnpm run dev')}`);
-          logger.error(
-            '  3. Stop the existing server (check for vibetmux processes)'
-          );
+          logger.error('  3. Stop the existing server (check for vibetmux processes)');
         } else {
           logger.error(
             'Please use a different port with --port <number> or stop the existing server'
@@ -1040,9 +1038,7 @@ export async function createApp(): Promise<AppInstance> {
       const actualPort =
         typeof address === 'string' ? requestedPort : address?.port || requestedPort;
       const displayAddress = bindAddress === '0.0.0.0' ? 'localhost' : bindAddress;
-      logger.log(
-        chalk.green(`VibeTmux Server running on http://${displayAddress}:${actualPort}`)
-      );
+      logger.log(chalk.green(`VibeTmux Server running on http://${displayAddress}:${actualPort}`));
 
       if (config.noAuth) {
         logger.warn(chalk.yellow('Authentication: DISABLED (--no-auth)'));
@@ -1128,13 +1124,7 @@ export async function startVibeTmuxServer() {
   logger.debug('Creating VibeTmux application instance');
   // Create and configure the app
   const appInstance = await createApp();
-  const {
-    startServer,
-    server,
-    terminalManager,
-    config,
-    configService,
-  } = appInstance;
+  const { startServer, server, terminalManager, config, configService } = appInstance;
 
   // Update debug mode based on config or environment variable
   if (config.debug || process.env.DEBUG === 'true') {

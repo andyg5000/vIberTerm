@@ -1,4 +1,5 @@
 import { DEFAULT_REPOSITORY_BASE_PATH } from '../shared/constants.js';
+import type { Project } from '../shared/types.js';
 
 export interface QuickStartCommand {
   name?: string; // Optional display name (can include emoji), if empty uses command
@@ -25,6 +26,7 @@ export interface VibeTmuxConfig {
   version: number;
   quickStartCommands: QuickStartCommand[];
   repositoryBasePath?: string;
+  projects?: Project[];
 
   // Extended configuration sections - matches Mac ConfigManager
   server?: {
@@ -46,6 +48,7 @@ export interface VibeTmuxConfig {
     showInDock: boolean;
     preventSleepWhenRunning: boolean;
     notifications?: NotificationPreferences;
+    sessionGrouping?: 'repo' | 'project';
   };
   remoteAccess?: {
     ngrokEnabled: boolean;

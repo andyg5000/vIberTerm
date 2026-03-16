@@ -327,6 +327,38 @@ export class SessionManager {
   }
 
   /**
+   * Park a session - sets status to 'parked' and saves CWD
+   */
+  parkSession(sessionId: string, cwd: string): void {
+    const sessionInfo = this.loadSessionInfo(sessionId);
+    if (!sessionInfo) {
+      throw new PtyError('Session info not found', 'SESSION_NOT_FOUND');
+    }
+
+    sessionInfo.status = 'parked';
+    sessionInfo.parkedAt = new Date().toISOString();
+    sessionInfo.parkedCwd = cwd;
+    sessionInfo.pid = undefined;
+
+    this.saveSessionInfo(sessionId, sessionInfo);
+    logger.debug(`session ${sessionId} parked with CWD: ${cwd}`);
+  }
+
+  /**
+   * Update session project ID
+   */
+  updateSessionProjectId(sessionId: string, projectId: string | undefined): void {
+    const sessionInfo = this.loadSessionInfo(sessionId);
+    if (!sessionInfo) {
+      throw new PtyError('Session info not found', 'SESSION_NOT_FOUND');
+    }
+
+    sessionInfo.projectId = projectId;
+    this.saveSessionInfo(sessionId, sessionInfo);
+    logger.debug(`session ${sessionId} project updated to: ${projectId || 'none'}`);
+  }
+
+  /**
    * Update session name
    */
   updateSessionName(sessionId: string, name: string): string {
@@ -520,8 +552,10 @@ export class SessionManager {
       const sessions = this.listSessions();
       for (const session of sessions) {
         if (!session.version) {
-          // Only clean if the session is not actively running
-          if (
+          // Only clean if the session is not actively running and not parked
+          if (session.status === 'parked') {
+            logger.debug(`preserving parked legacy session ${session.id}`);
+          } else if (
             session.status === 'exited' ||
             (session.pid && !ProcessUtils.isProcessRunning(session.pid))
           ) {
@@ -557,8 +591,12 @@ export class SessionManager {
       for (const session of sessions) {
         // Only clean sessions that don't match the current version AND are not active
         if (!session.version || session.version !== currentVersion) {
-          // Check if session is actually dead/zombie
-          if (
+          // Never clean parked sessions
+          if (session.status === 'parked') {
+            logger.debug(
+              `preserving parked session ${session.id} (version: ${session.version || 'unknown'})`
+            );
+          } else if (
             session.status === 'exited' ||
             (session.pid && !ProcessUtils.isProcessRunning(session.pid))
           ) {
@@ -656,6 +694,7 @@ export class SessionManager {
       const sessions = this.listSessions();
 
       for (const session of sessions) {
+        // Skip parked sessions - they have no running process by design
         if (session.status === 'running' && session.pid) {
           if (!ProcessUtils.isProcessRunning(session.pid)) {
             // Process is dead, update status

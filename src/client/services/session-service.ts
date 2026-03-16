@@ -70,6 +70,7 @@ export interface SessionCreateData {
   titleMode?: TitleMode;
   gitRepoPath?: string;
   gitBranch?: string;
+  projectId?: string;
 }
 
 /**

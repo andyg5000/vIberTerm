@@ -2,11 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  DEFAULT_CONFIG,
-  type QuickStartCommand,
-  type VibeTmuxConfig,
-} from '../../types/config.js';
+import { DEFAULT_CONFIG, type QuickStartCommand, type VibeTmuxConfig } from '../../types/config.js';
 import { ConfigService } from './config-service.js';
 
 // Mock modules

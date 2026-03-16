@@ -469,16 +469,13 @@ export class PushNotificationService {
 
           // Show notification if we have permission
           if (this.serviceWorkerRegistration && this.getPermission() === 'granted') {
-            await this.serviceWorkerRegistration.showNotification(
-              event.title || 'VibeTmux Test',
-              {
-                body: event.body || 'Test notification received!',
-                icon: '/apple-touch-icon.png',
-                badge: '/favicon-32.png',
-                tag: 'vibetmux-test',
-                requireInteraction: false,
-              }
-            );
+            await this.serviceWorkerRegistration.showNotification(event.title || 'VibeTmux Test', {
+              body: event.body || 'Test notification received!',
+              icon: '/apple-touch-icon.png',
+              badge: '/favicon-32.png',
+              tag: 'vibetmux-test',
+              requireInteraction: false,
+            });
             logger.log('✅ Displayed test notification');
           }
           resolve();

@@ -317,7 +317,7 @@ export class SessionHeader extends LitElement {
               <inline-edit
                 class="min-w-0 flex-1 text-xs"
                 .value=${this.session?.name || ''}
-                .placeholder=${Array.isArray(this.session?.command) ? this.session?.command.join(' ') : this.session?.command ?? ''}
+                .placeholder=${Array.isArray(this.session?.command) ? this.session?.command.join(' ') : (this.session?.command ?? '')}
                 .onSave=${(newName: string) => this.handleRename(newName)}
               ></inline-edit>
             </div>
@@ -472,19 +472,27 @@ export class SessionHeader extends LitElement {
                   : ''
               }
             </div>
-            ${this.tmuxStatus ? html`
+            ${
+              this.tmuxStatus
+                ? html`
               <div class="text-xs opacity-75 mt-0.5 truncate text-text-muted font-mono">
                 ${this.tmuxStatus}
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
         </div>
         <div class="flex items-center gap-2 text-xs flex-shrink-0 ml-2">
-          ${this.isTmuxSession() ? html`
+          ${
+            this.isTmuxSession()
+              ? html`
             <tmux-cheat-sheet
               .isMobile=${this.isMobile}
             ></tmux-cheat-sheet>
-          ` : ''}
+          `
+              : ''
+          }
 
           ${
             this.useCompactMenu

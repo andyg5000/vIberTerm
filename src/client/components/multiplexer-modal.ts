@@ -571,7 +571,19 @@ export class MultiplexerModal extends LitElement {
                                                 </button>
                                                 <span class="text-xs text-text-dim">
                                                   ${window.panes} pane${window.panes !== 1 ? 's' : ''}
-                                                  ${window.panes > 1 ? html`<span class="ml-2 cursor-default transition-transform ${isWindowExpanded ? 'rotate-90' : ''}" @click=${(e: Event) => { e.stopPropagation(); this.toggleWindow(session.name, window.index); }}>▶</span>` : ''}
+                                                  ${
+                                                    window.panes > 1
+                                                      ? html`<span class="ml-2 cursor-default transition-transform ${isWindowExpanded ? 'rotate-90' : ''}" @click=${(
+                                                          e: Event
+                                                        ) => {
+                                                          e.stopPropagation();
+                                                          this.toggleWindow(
+                                                            session.name,
+                                                            window.index
+                                                          );
+                                                        }}>▶</span>`
+                                                      : ''
+                                                  }
                                                 </span>
                                               </div>
                                             </div>

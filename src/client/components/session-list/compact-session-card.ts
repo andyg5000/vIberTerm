@@ -32,7 +32,7 @@ export class CompactSessionCard extends LitElement {
   @property({ type: Object }) session!: Session;
   @property({ type: Object }) authClient!: AuthClient;
   @property({ type: Boolean }) selected = false;
-  @property({ type: String }) sessionType: 'running' | 'exited' = 'running';
+  @property({ type: String }) sessionType: 'running' | 'exited' | 'parked' = 'running';
   @property({ type: Number }) sessionNumber?: number;
   @state() private showKillConfirm = false;
   @state() private tmuxWindows: TmuxWindow[] = [];
@@ -197,6 +197,10 @@ export class CompactSessionCard extends LitElement {
       return html`<div class="w-2.5 h-2.5 rounded-full bg-status-warning"></div>`;
     }
 
+    if (session.status === 'parked') {
+      return html`<div class="w-2.5 h-2.5 rounded-full bg-blue-400"></div>`;
+    }
+
     return html`<div class="w-2.5 h-2.5 rounded-full bg-status-success"></div>`;
   }
 
@@ -354,22 +358,28 @@ export class CompactSessionCard extends LitElement {
           </div>
           
           <!-- Row 3: Tmux window tabs -->
-          ${this.tmuxWindows.length > 0 ? html`
+          ${
+            this.tmuxWindows.length > 0
+              ? html`
             <div class="flex flex-wrap gap-1 mt-1.5">
               ${this.tmuxWindows.map(
                 (win) => html`
                   <button
                     class="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-all
-                      ${win.active
-                        ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
-                        : 'bg-bg-tertiary border-border text-text-muted hover:bg-bg-elevated hover:text-text hover:border-border-light'}"
+                      ${
+                        win.active
+                          ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
+                          : 'bg-bg-tertiary border-border text-text-muted hover:bg-bg-elevated hover:text-text hover:border-border-light'
+                      }"
                     title="${win.name}"
                     @click=${(e: Event) => this.handleWindowClick(e, win.index)}
                   >${win.index}:${win.name}</button>
                 `
               )}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         
         <!-- Right side: duration and close button -->
@@ -405,8 +415,13 @@ export class CompactSessionCard extends LitElement {
         .message=${'This session is still running. Are you sure you want to kill it?'}
         .confirmLabel=${'Kill'}
         .danger=${true}
-        @confirm=${async () => { this.showKillConfirm = false; await this.performDelete(); }}
-        @cancel=${() => { this.showKillConfirm = false; }}
+        @confirm=${async () => {
+          this.showKillConfirm = false;
+          await this.performDelete();
+        }}
+        @cancel=${() => {
+          this.showKillConfirm = false;
+        }}
       ></confirm-dialog>
     `;
   }

@@ -1,6 +1,7 @@
 import { html, LitElement, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { DEFAULT_REPOSITORY_BASE_PATH } from '../../shared/constants.js';
+import type { Project } from '../../shared/types.js';
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '../../types/config.js';
 import type { AuthClient } from '../services/auth-client.js';
 import {
@@ -37,6 +38,12 @@ export class Settings extends LitElement {
   @state() private repositoryBasePath = DEFAULT_REPOSITORY_BASE_PATH;
   @state() private repositoryCount = 0;
   @state() private isDiscoveringRepositories = false;
+
+  // Project settings state
+  @state() private projects: Project[] = [];
+  @state() private sessionGrouping: 'repo' | 'project' = 'repo';
+  @state() private newProjectName = '';
+  @state() private newProjectColor = '#6366f1';
 
   private permissionChangeUnsubscribe?: () => void;
   private subscriptionChangeUnsubscribe?: () => void;
@@ -164,7 +171,9 @@ export class Settings extends LitElement {
           const serverConfig = await this.serverConfigService.loadConfig(this.visible);
           // Always use server's repository base path
           this.repositoryBasePath = serverConfig.repositoryBasePath || DEFAULT_REPOSITORY_BASE_PATH;
-          logger.debug('Loaded repository base path:', this.repositoryBasePath);
+          this.projects = serverConfig.projects || [];
+          this.sessionGrouping = serverConfig.sessionGrouping || 'repo';
+          logger.debug('Loaded settings from server');
           // Force update to ensure UI reflects the loaded value
           this.requestUpdate();
         } catch (error) {
@@ -684,11 +693,158 @@ export class Settings extends LitElement {
     `;
   }
 
+  private async handleSessionGroupingChange(grouping: 'repo' | 'project') {
+    this.sessionGrouping = grouping;
+    if (this.serverConfigService) {
+      try {
+        await this.serverConfigService.updateConfig({ sessionGrouping: grouping });
+        this.dispatchEvent(new CustomEvent('grouping-change', { detail: grouping, bubbles: true }));
+      } catch (error) {
+        logger.error('Failed to update session grouping:', error);
+      }
+    }
+  }
+
+  private async handleAddProject() {
+    if (!this.newProjectName.trim()) return;
+
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name: this.newProjectName.trim(),
+      color: this.newProjectColor,
+    };
+
+    const updatedProjects = [...this.projects, newProject];
+    this.projects = updatedProjects;
+    this.newProjectName = '';
+
+    if (this.serverConfigService) {
+      try {
+        await this.serverConfigService.updateConfig({ projects: updatedProjects });
+      } catch (error) {
+        logger.error('Failed to add project:', error);
+      }
+    }
+  }
+
+  private async handleDeleteProject(projectId: string) {
+    const updatedProjects = this.projects.filter((p) => p.id !== projectId);
+    this.projects = updatedProjects;
+
+    if (this.serverConfigService) {
+      try {
+        await this.serverConfigService.updateConfig({ projects: updatedProjects });
+        // Dispatch event so parent can unassign sessions
+        this.dispatchEvent(
+          new CustomEvent('project-deleted', { detail: projectId, bubbles: true })
+        );
+      } catch (error) {
+        logger.error('Failed to delete project:', error);
+      }
+    }
+  }
+
   private renderAppSettings() {
     return html`
       <div class="space-y-4">
         <h3 class="text-md font-bold text-primary mb-3">Application</h3>
-        
+
+        <!-- Session Grouping -->
+        <div class="p-4 bg-bg-tertiary rounded-lg border border-border/50">
+          <label class="text-primary font-medium">Session Grouping</label>
+          <p class="text-muted text-xs mt-1 mb-3">Choose how sessions are grouped in the sidebar.</p>
+          <div class="flex gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="sessionGrouping"
+                value="repo"
+                ?checked=${this.sessionGrouping === 'repo'}
+                @change=${() => this.handleSessionGroupingChange('repo')}
+                class="accent-primary"
+              />
+              <span class="text-sm text-primary">By Repository</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="sessionGrouping"
+                value="project"
+                ?checked=${this.sessionGrouping === 'project'}
+                @change=${() => this.handleSessionGroupingChange('project')}
+                class="accent-primary"
+              />
+              <span class="text-sm text-primary">By Project</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Projects -->
+        <div class="p-4 bg-bg-tertiary rounded-lg border border-border/50">
+          <label class="text-primary font-medium">Projects</label>
+          <p class="text-muted text-xs mt-1 mb-3">Create projects to group sessions across repositories.</p>
+
+          ${
+            this.projects.length > 0
+              ? html`
+            <div class="space-y-2 mb-3">
+              ${this.projects.map(
+                (project) => html`
+                <div class="flex items-center gap-2 py-1.5 px-2 bg-bg rounded border border-border/50">
+                  <div
+                    class="w-3 h-3 rounded-full flex-shrink-0"
+                    style="background-color: ${project.color || '#6366f1'}"
+                  ></div>
+                  <span class="text-sm text-primary flex-1">${project.name}</span>
+                  <button
+                    class="text-status-error hover:text-status-error/80 text-xs p-1"
+                    @click=${() => this.handleDeleteProject(project.id)}
+                    title="Delete project"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              `
+              )}
+            </div>
+          `
+              : ''
+          }
+
+          <div class="flex gap-2 items-center">
+            <input
+              type="color"
+              .value=${this.newProjectColor}
+              @input=${(e: Event) => {
+                this.newProjectColor = (e.target as HTMLInputElement).value;
+              }}
+              class="w-8 h-8 rounded border border-border cursor-pointer"
+              title="Project color"
+            />
+            <input
+              type="text"
+              .value=${this.newProjectName}
+              @input=${(e: Event) => {
+                this.newProjectName = (e.target as HTMLInputElement).value;
+              }}
+              @keydown=${(e: KeyboardEvent) => {
+                if (e.key === 'Enter') this.handleAddProject();
+              }}
+              placeholder="New project name"
+              class="input-field py-1.5 text-sm flex-1"
+            />
+            <button
+              class="btn-secondary text-xs px-3 py-1.5"
+              @click=${() => this.handleAddProject()}
+              ?disabled=${!this.newProjectName.trim()}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
         <!-- Repository Base Path -->
         <div class="p-4 bg-bg-tertiary rounded-lg border border-border/50">
           <div class="mb-3">
@@ -707,7 +863,7 @@ export class Settings extends LitElement {
                   title="Refresh repository list"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>

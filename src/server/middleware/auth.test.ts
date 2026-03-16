@@ -242,15 +242,11 @@ describe('Auth Middleware', () => {
       expect(response1.status).toBe(401);
 
       // With wrong token
-      const response2 = await request(app)
-        .get('/api/test')
-        .set('x-vibetmux-local', 'wrong-token');
+      const response2 = await request(app).get('/api/test').set('x-vibetmux-local', 'wrong-token');
       expect(response2.status).toBe(401);
 
       // With correct token
-      const response3 = await request(app)
-        .get('/api/test')
-        .set('x-vibetmux-local', 'secret-token');
+      const response3 = await request(app).get('/api/test').set('x-vibetmux-local', 'secret-token');
       expect(response3.status).toBe(200);
     });
 

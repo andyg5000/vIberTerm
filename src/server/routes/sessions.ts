@@ -114,7 +114,7 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
 
   // Create new session
   router.post('/sessions', async (req, res) => {
-    const { command, workingDir, name, cols, rows, titleMode } = req.body;
+    const { command, workingDir, name, cols, rows, titleMode, projectId } = req.body;
     logger.debug(
       `creating new session: command=${JSON.stringify(command)}, cols=${cols}, rows=${rows}`
     );
@@ -141,11 +141,7 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
       // Detect Git information
       const gitInfo = await detectGitInfo(cwd);
 
-      logger.log(
-        chalk.blue(
-          `creating session: ${command.join(' ')} in ${cwd}`
-        )
-      );
+      logger.log(chalk.blue(`creating session: ${command.join(' ')} in ${cwd}`));
 
       const result = await ptyManager.createSession(command, {
         name: sessionName,
@@ -160,6 +156,7 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
         gitHasChanges: gitInfo.gitHasChanges,
         gitIsWorktree: gitInfo.gitIsWorktree,
         gitMainRepoPath: gitInfo.gitMainRepoPath,
+        projectId,
       });
 
       const { sessionId, sessionInfo } = result;
@@ -246,8 +243,8 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      // If session is already exited, clean it up instead of trying to kill it
-      if (session.status === 'exited') {
+      // If session is parked or exited, clean it up instead of trying to kill it
+      if (session.status === 'parked' || session.status === 'exited') {
         ptyManager.cleanupSession(sessionId);
         logger.log(chalk.yellow(`local session ${sessionId} cleaned up`));
         res.json({ success: true, message: 'Session cleaned up' });
@@ -451,61 +448,120 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
     logger.debug(`[PATCH] Request body:`, req.body);
     logger.debug(`[PATCH] Request headers:`, req.headers);
 
-    const { name } = req.body;
+    const { name, projectId } = req.body;
 
-    if (typeof name !== 'string' || name.trim() === '') {
-      logger.warn(`[PATCH] Invalid name provided: ${JSON.stringify(name)}`);
-      return res.status(400).json({ error: 'Name must be a non-empty string' });
+    // At least one update field must be provided
+    if (name === undefined && projectId === undefined) {
+      return res.status(400).json({ error: 'At least one of name or projectId must be provided' });
     }
 
-    logger.log(chalk.blue(`[PATCH] Updating session ${sessionId} name to: ${name}`));
-
     try {
-      logger.debug(`[PATCH] Handling local session update`);
-
       const session = ptyManager.getSession(sessionId);
       if (!session) {
-        logger.warn(`[PATCH] Session ${sessionId} not found for name update`);
+        logger.warn(`[PATCH] Session ${sessionId} not found`);
         return res.status(404).json({ error: 'Session not found' });
       }
 
-      logger.debug(`[PATCH] Found session: ${JSON.stringify(session)}`);
+      let uniqueName: string | undefined;
 
-      // Update the session name
-      logger.debug(`[PATCH] Calling ptyManager.updateSessionName(${sessionId}, ${name})`);
-      const uniqueName = ptyManager.updateSessionName(sessionId, name);
-      logger.log(chalk.green(`[PATCH] Session ${sessionId} name updated to: ${uniqueName}`));
+      // Update project ID if provided
+      if (projectId !== undefined) {
+        logger.log(
+          chalk.blue(`[PATCH] Updating session ${sessionId} projectId to: ${projectId || 'none'}`)
+        );
+        ptyManager.updateSessionProjectId(sessionId, projectId || undefined);
+      }
 
-      // If this is a tmux session, also rename the underlying tmux session
-      if (
-        session.command[0] === 'tmux' &&
-        session.command[1] === 'attach-session' &&
-        session.command[2] === '-t'
-      ) {
-        const tmuxTarget = session.command[3];
-        // Extract just the session name (before any :window.pane suffix)
-        const tmuxSessionName = tmuxTarget.split(':')[0];
-        try {
-          const tmuxManager = TmuxManager.getInstance(ptyManager);
-          await tmuxManager.renameSession(tmuxSessionName, name.trim());
-          logger.log(
-            chalk.green(`[PATCH] Tmux session "${tmuxSessionName}" renamed to "${name.trim()}"`)
-          );
-          // Update the VibeTmux session name to reflect new tmux target
-          ptyManager.updateSessionName(sessionId, `tmux: ${name.trim()}`);
-        } catch (tmuxError) {
-          // Non-fatal: VibeTmux rename succeeded, tmux rename failed
-          logger.warn(`[PATCH] Failed to rename tmux session:`, tmuxError);
+      // Update name if provided
+      if (name !== undefined) {
+        if (typeof name !== 'string' || name.trim() === '') {
+          return res.status(400).json({ error: 'Name must be a non-empty string' });
+        }
+
+        logger.log(chalk.blue(`[PATCH] Updating session ${sessionId} name to: ${name}`));
+        uniqueName = ptyManager.updateSessionName(sessionId, name);
+        logger.log(chalk.green(`[PATCH] Session ${sessionId} name updated to: ${uniqueName}`));
+
+        // If this is a tmux session, also rename the underlying tmux session
+        if (
+          session.command[0] === 'tmux' &&
+          session.command[1] === 'attach-session' &&
+          session.command[2] === '-t'
+        ) {
+          const tmuxTarget = session.command[3];
+          const tmuxSessionName = tmuxTarget.split(':')[0];
+          try {
+            const tmuxManager = TmuxManager.getInstance(ptyManager);
+            await tmuxManager.renameSession(tmuxSessionName, name.trim());
+            logger.log(
+              chalk.green(`[PATCH] Tmux session "${tmuxSessionName}" renamed to "${name.trim()}"`)
+            );
+            ptyManager.updateSessionName(sessionId, `tmux: ${name.trim()}`);
+          } catch (tmuxError) {
+            logger.warn(`[PATCH] Failed to rename tmux session:`, tmuxError);
+          }
         }
       }
 
-      res.json({ success: true, name: uniqueName });
+      res.json({
+        success: true,
+        ...(uniqueName ? { name: uniqueName } : {}),
+        ...(projectId !== undefined ? { projectId } : {}),
+      });
     } catch (error) {
-      logger.error('error updating session name:', error);
+      logger.error('error updating session:', error);
       if (error instanceof PtyError) {
-        res.status(500).json({ error: 'Failed to update session name', details: error.message });
+        res.status(500).json({ error: 'Failed to update session', details: error.message });
       } else {
-        res.status(500).json({ error: 'Failed to update session name' });
+        res.status(500).json({ error: 'Failed to update session' });
+      }
+    }
+  });
+
+  // Park a session
+  router.post('/sessions/:sessionId/park', async (req, res) => {
+    const sessionId = req.params.sessionId;
+    logger.log(chalk.blue(`parking session ${sessionId}`));
+
+    try {
+      const session = ptyManager.getSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
+
+      if (session.status !== 'running') {
+        return res.status(400).json({ error: 'Only running sessions can be parked' });
+      }
+
+      await ptyManager.parkSession(sessionId);
+      logger.log(chalk.green(`session ${sessionId} parked successfully`));
+      res.json({ success: true, message: 'Session parked' });
+    } catch (error) {
+      logger.error('error parking session:', error);
+      if (error instanceof PtyError) {
+        res.status(500).json({ error: 'Failed to park session', details: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to park session' });
+      }
+    }
+  });
+
+  // Resume a parked session
+  router.post('/sessions/:sessionId/resume', async (req, res) => {
+    const sessionId = req.params.sessionId;
+    const { cols, rows } = req.body;
+    logger.log(chalk.blue(`resuming session ${sessionId}`));
+
+    try {
+      const result = await ptyManager.resumeSession(sessionId, { cols, rows });
+      logger.log(chalk.green(`session ${sessionId} resumed (PID: ${result.sessionInfo.pid})`));
+      res.json({ success: true, sessionId: result.sessionId });
+    } catch (error) {
+      logger.error('error resuming session:', error);
+      if (error instanceof PtyError) {
+        res.status(500).json({ error: 'Failed to resume session', details: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to resume session' });
       }
     }
   });
@@ -547,4 +603,3 @@ export function createSessionRoutes(config: SessionRoutesConfig): Router {
 
   return router;
 }
-

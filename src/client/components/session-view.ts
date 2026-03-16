@@ -161,16 +161,16 @@ export class SessionView extends LitElement {
       getTerminalLifecycleManager: () =>
         this.terminalLifecycleManager
           ? {
-            resetTerminalSize: () => this.terminalLifecycleManager.resetTerminalSize(),
-            cleanup: () => this.terminalLifecycleManager.cleanup(),
-          }
+              resetTerminalSize: () => this.terminalLifecycleManager.resetTerminalSize(),
+              cleanup: () => this.terminalLifecycleManager.cleanup(),
+            }
           : null,
       getConnectionManager: () =>
         this.connectionManager
           ? {
-            setConnected: (connected: boolean) => this.connectionManager.setConnected(connected),
-            cleanupStreamConnection: () => this.connectionManager.cleanupStreamConnection(),
-          }
+              setConnected: (connected: boolean) => this.connectionManager.setConnected(connected),
+              cleanupStreamConnection: () => this.connectionManager.cleanupStreamConnection(),
+            }
           : null,
       setConnected: (connected: boolean) => {
         this.uiStateManager.setConnected(connected);
@@ -686,18 +686,28 @@ export class SessionView extends LitElement {
 
   private async fetchTmuxStatus(tmuxSessionName: string) {
     try {
-      const response = await fetch(`/multiplexer/tmux/sessions/${encodeURIComponent(tmuxSessionName)}/windows`, {
-        headers: authClient.getAuthHeader(),
-      });
+      const response = await fetch(
+        `/multiplexer/tmux/sessions/${encodeURIComponent(tmuxSessionName)}/windows`,
+        {
+          headers: authClient.getAuthHeader(),
+        }
+      );
       if (!response.ok) return;
       const data = await response.json();
-      const windows = data.windows as Array<{ index: number; name: string; active: boolean; panes: number }>;
+      const windows = data.windows as Array<{
+        index: number;
+        name: string;
+        active: boolean;
+        panes: number;
+      }>;
       if (!windows?.length) {
         this.tmuxStatus = '';
         return;
       }
       this.tmuxStatus = windows
-        .map((w) => `${w.index}:${w.name}${w.active ? '*' : ''}${w.panes > 1 ? ` (${w.panes}P)` : ''}`)
+        .map(
+          (w) => `${w.index}:${w.name}${w.active ? '*' : ''}${w.panes > 1 ? ` (${w.panes}P)` : ''}`
+        )
         .join(' | ');
       this.requestUpdate();
     } catch {
@@ -1414,13 +1424,13 @@ export class SessionView extends LitElement {
             .onToggleChatMode=${() => this.handleToggleChatMode()}
             .mobileHeaderHidden=${uiState.mobileHeaderHidden}
             @close-width-selector=${() => {
-        this.uiStateManager.setShowWidthSelector(false);
-        this.uiStateManager.setCustomWidth('');
-      }}
+              this.uiStateManager.setShowWidthSelector(false);
+              this.uiStateManager.setCustomWidth('');
+            }}
             @session-rename=${async (e: CustomEvent) => {
-        const { sessionId, newName } = e.detail;
-        await this.sessionActionsHandler.handleRename(sessionId, newName);
-      }}
+              const { sessionId, newName } = e.detail;
+              await this.sessionActionsHandler.handleRename(sessionId, newName);
+            }}
             @paste-image=${async () => await this.fileOperationsManager.pasteImage()}
             @select-image=${() => this.fileOperationsManager.selectImage()}
             @open-camera=${() => this.fileOperationsManager.openCamera()}
@@ -1434,20 +1444,22 @@ export class SessionView extends LitElement {
 
         <!-- Content Area (Terminal or Worktree) -->
         <div
-          class="terminal-area bg-bg ${this.session?.status === 'exited' && uiState.viewMode === 'terminal'
-        ? 'session-exited opacity-90'
-        : ''
-      } ${
-      // Add safe area padding for landscape mode on mobile to handle notch
-      uiState.isMobile && uiState.isLandscape ? 'safe-area-left safe-area-right' : ''
-      }"
+          class="terminal-area bg-bg ${
+            this.session?.status === 'exited' && uiState.viewMode === 'terminal'
+              ? 'session-exited opacity-90'
+              : ''
+          } ${
+            // Add safe area padding for landscape mode on mobile to handle notch
+            uiState.isMobile && uiState.isLandscape ? 'safe-area-left safe-area-right' : ''
+          }"
           data-quickkeys-visible="${uiState.showQuickKeys}"
           @touchstart=${uiState.isMobile ? this.handleMobileTouchStart : undefined}
           @touchmove=${uiState.isMobile ? this.handleMobileTouchMove : undefined}
           @touchend=${uiState.isMobile ? this.handleMobileTouchEnd : undefined}
         >
-          ${this.loadingAnimationManager.isLoading()
-        ? html`
+          ${
+            this.loadingAnimationManager.isLoading()
+              ? html`
                 <!-- Enhanced Loading overlay -->
                 <div
                   class="absolute inset-0 bg-bg/90 backdrop-filter backdrop-blur-sm flex items-center justify-center z-10 animate-fade-in"
@@ -1458,20 +1470,21 @@ export class SessionView extends LitElement {
                   </div>
                 </div>
               `
-        : ''
-      }
-          ${uiState.viewMode === 'worktree' && this.session?.gitRepoPath
-        ? html`
+              : ''
+          }
+          ${
+            uiState.viewMode === 'worktree' && this.session?.gitRepoPath
+              ? html`
               <worktree-manager
                 .gitService=${this.gitService}
                 .repoPath=${this.session.gitRepoPath}
                 @back=${() => {
-            this.uiStateManager.setViewMode('terminal');
-          }}
+                  this.uiStateManager.setViewMode('terminal');
+                }}
               ></worktree-manager>
             `
-        : uiState.viewMode === 'terminal'
-          ? html`
+              : uiState.viewMode === 'terminal'
+                ? html`
               <!-- Enhanced Terminal Component -->
               <div style="position: relative; height: 100%;">
                 <!-- Terminal (hidden when chat mode is active) -->
@@ -1594,41 +1607,41 @@ export class SessionView extends LitElement {
               onClearCtrlSequence: () => this.handleClearCtrlSequence(),
               onCtrlAlphaCancel: () => this.handleCtrlAlphaCancel(),
 
-        // Quick keys
-        onQuickKeyPress: (key: string) => this.directKeyboardManager.handleQuickKeyPress(key),
+              // Quick keys
+              onQuickKeyPress: (key: string) => this.directKeyboardManager.handleQuickKeyPress(key),
 
-        // File browser/picker
-        onCloseFileBrowser: () => this.fileOperationsManager.closeFileBrowser(),
-        onInsertPath: async (e: CustomEvent) => {
-          const { path, type } = e.detail;
-          await this.fileOperationsManager.insertPath(path, type);
-        },
-        onFileSelected: async (e: CustomEvent) => {
-          await this.fileOperationsManager.handleFileSelected(e.detail.path);
-        },
-        onFileError: (e: CustomEvent) => {
-          this.fileOperationsManager.handleFileError(e.detail);
-        },
-        onCloseFilePicker: () => this.fileOperationsManager.closeFilePicker(),
+              // File browser/picker
+              onCloseFileBrowser: () => this.fileOperationsManager.closeFileBrowser(),
+              onInsertPath: async (e: CustomEvent) => {
+                const { path, type } = e.detail;
+                await this.fileOperationsManager.insertPath(path, type);
+              },
+              onFileSelected: async (e: CustomEvent) => {
+                await this.fileOperationsManager.handleFileSelected(e.detail.path);
+              },
+              onFileError: (e: CustomEvent) => {
+                this.fileOperationsManager.handleFileError(e.detail);
+              },
+              onCloseFilePicker: () => this.fileOperationsManager.closeFilePicker(),
 
-        // Terminal settings
-        onWidthSelect: (width: number) =>
-          this.terminalSettingsManager.handleWidthSelect(width),
-        onFontSizeChange: (size: number) =>
-          this.terminalSettingsManager.handleFontSizeChange(size),
-        onThemeChange: (theme: TerminalThemeId) =>
-          this.terminalSettingsManager.handleThemeChange(theme),
-        onCloseWidthSelector: () => {
-          this.uiStateManager.setShowWidthSelector(false);
-          this.uiStateManager.setCustomWidth('');
-        },
+              // Terminal settings
+              onWidthSelect: (width: number) =>
+                this.terminalSettingsManager.handleWidthSelect(width),
+              onFontSizeChange: (size: number) =>
+                this.terminalSettingsManager.handleFontSizeChange(size),
+              onThemeChange: (theme: TerminalThemeId) =>
+                this.terminalSettingsManager.handleThemeChange(theme),
+              onCloseWidthSelector: () => {
+                this.uiStateManager.setShowWidthSelector(false);
+                this.uiStateManager.setCustomWidth('');
+              },
 
-        // Keyboard button
-        onKeyboardButtonClick: () => this.handleKeyboardButtonClick(),
+              // Keyboard button
+              onKeyboardButtonClick: () => this.handleKeyboardButtonClick(),
 
-        // Navigation
-        handleBack: () => this.handleBack(),
-      }}
+              // Navigation
+              handleBack: () => this.handleBack(),
+            }}
           ></overlays-container>
         </div>
       </div>

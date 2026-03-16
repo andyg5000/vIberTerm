@@ -14,8 +14,8 @@ import { html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import type { TmuxWindow } from '../../shared/multiplexer-types.js';
 import type { Session } from '../../shared/types.js';
-import type { AuthClient } from '../services/auth-client.js';
 import { apiClient } from '../services/api-client.js';
+import type { AuthClient } from '../services/auth-client.js';
 import { sessionActionService } from '../services/session-action-service.js';
 import { isAIAssistantSession, sendAIPrompt } from '../utils/ai-sessions.js';
 import { createLogger } from '../utils/logger.js';
@@ -67,6 +67,8 @@ export class SessionCard extends LitElement {
   @state() private killingFrame = 0;
   @state() private isSendingPrompt = false;
   @state() private showKillConfirm = false;
+  @state() private parking = false;
+  @state() private resuming = false;
   @state() private terminalTheme: TerminalThemeId = 'auto';
   @state() private tmuxWindows: TmuxWindow[] = [];
   // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used in render method
@@ -226,8 +228,12 @@ export class SessionCard extends LitElement {
       return false;
     }
 
-    // Only allow killing/cleanup for running or exited sessions
-    if (this.session.status !== 'running' && this.session.status !== 'exited') {
+    // Only allow killing/cleanup for running, exited, or parked sessions
+    if (
+      this.session.status !== 'running' &&
+      this.session.status !== 'exited' &&
+      this.session.status !== 'parked'
+    ) {
       return false;
     }
 
@@ -370,6 +376,60 @@ export class SessionCard extends LitElement {
     }
   }
 
+  private async handleParkClick(e: Event) {
+    e.stopPropagation();
+    if (this.parking || this.session.status !== 'running') return;
+
+    this.parking = true;
+    const result = await sessionActionService.parkSession(this.session, {
+      authClient: this.authClient,
+      callbacks: {
+        onError: (msg) => {
+          logger.error('Park failed:', msg);
+          this.parking = false;
+        },
+      },
+    });
+
+    if (result.success) {
+      this.dispatchEvent(
+        new CustomEvent('session-parked', {
+          detail: { sessionId: this.session.id },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    this.parking = false;
+  }
+
+  private async handleResumeClick(e: Event) {
+    e.stopPropagation();
+    if (this.resuming || this.session.status !== 'parked') return;
+
+    this.resuming = true;
+    const result = await sessionActionService.resumeSession(this.session, {
+      authClient: this.authClient,
+      callbacks: {
+        onError: (msg) => {
+          logger.error('Resume failed:', msg);
+          this.resuming = false;
+        },
+      },
+    });
+
+    if (result.success) {
+      this.dispatchEvent(
+        new CustomEvent('session-resumed', {
+          detail: { sessionId: this.session.id },
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
+    this.resuming = false;
+  }
+
   private async handleMagicButton() {
     if (!this.session || this.isSendingPrompt) return;
 
@@ -484,7 +544,56 @@ export class SessionCard extends LitElement {
                 : ''
             }
             ${
-              this.session.status === 'running' || this.session.status === 'exited'
+              this.session.status === 'running'
+                ? html`
+                  <button
+                    class="p-1 rounded-full transition-all duration-200 disabled:opacity-50 flex-shrink-0 text-blue-400 hover:bg-blue-400/20"
+                    @click=${this.handleParkClick}
+                    ?disabled=${this.parking || this.killing}
+                    title="Park session"
+                    data-testid="park-session-button"
+                  >
+                    ${
+                      this.parking
+                        ? html`<span class="block w-5 h-5 flex items-center justify-center animate-spin">⠋</span>`
+                        : html`
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        `
+                    }
+                  </button>
+                `
+                : ''
+            }
+            ${
+              this.session.status === 'parked'
+                ? html`
+                  <button
+                    class="p-1 rounded-full transition-all duration-200 disabled:opacity-50 flex-shrink-0 text-status-success hover:bg-status-success/20"
+                    @click=${this.handleResumeClick}
+                    ?disabled=${this.resuming}
+                    title="Resume session"
+                    data-testid="resume-session-button"
+                  >
+                    ${
+                      this.resuming
+                        ? html`<span class="block w-5 h-5 flex items-center justify-center animate-spin">⠋</span>`
+                        : html`
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        `
+                    }
+                  </button>
+                `
+                : ''
+            }
+            ${
+              this.session.status === 'running' ||
+              this.session.status === 'exited' ||
+              this.session.status === 'parked'
                 ? html`
                   <button
                     class="p-1 rounded-full transition-all duration-200 disabled:opacity-50 flex-shrink-0 ${
@@ -572,24 +681,30 @@ export class SessionCard extends LitElement {
             ${this.renderGitStatus()}
           </div>
           <div class="text-xs opacity-75 min-w-0 mt-1">
-            <clickable-path .path=${this.session.workingDir} .iconSize=${12}></clickable-path>
+            <clickable-path .path=${this.session.status === 'parked' && this.session.parkedCwd ? this.session.parkedCwd : this.session.workingDir} .iconSize=${12}></clickable-path>
           </div>
-          ${this.tmuxWindows.length > 0 ? html`
+          ${
+            this.tmuxWindows.length > 0
+              ? html`
             <div class="flex flex-wrap gap-1 mt-1.5">
               ${this.tmuxWindows.map(
                 (win) => html`
                   <button
                     class="text-[10px] font-mono px-1.5 py-0.5 rounded border transition-all
-                      ${win.active
-                        ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
-                        : 'bg-bg-tertiary border-border text-text-muted hover:bg-bg-elevated hover:text-text hover:border-border-light'}"
+                      ${
+                        win.active
+                          ? 'bg-accent-primary/20 border-accent-primary/50 text-accent-primary'
+                          : 'bg-bg-tertiary border-border text-text-muted hover:bg-bg-elevated hover:text-text hover:border-border-light'
+                      }"
                     title="${win.name}"
                     @click=${(e: Event) => this.handleWindowClick(e, win.index)}
                   >${win.index}:${win.name}</button>
                 `
               )}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
 
       </div>
@@ -600,8 +715,13 @@ export class SessionCard extends LitElement {
         .message=${'This session is still running. Are you sure you want to kill it?'}
         .confirmLabel=${'Kill'}
         .danger=${true}
-        @confirm=${async () => { this.showKillConfirm = false; await this.kill(); }}
-        @cancel=${() => { this.showKillConfirm = false; }}
+        @confirm=${async () => {
+          this.showKillConfirm = false;
+          await this.kill();
+        }}
+        @cancel=${() => {
+          this.showKillConfirm = false;
+        }}
       ></confirm-dialog>
     `;
   }
@@ -674,6 +794,12 @@ export class SessionCard extends LitElement {
     if (this.killing) {
       return 'killing...';
     }
+    if (this.parking) {
+      return 'parking...';
+    }
+    if (this.resuming) {
+      return 'resuming...';
+    }
     if (this.session.active === false) {
       return 'waiting';
     }
@@ -684,6 +810,12 @@ export class SessionCard extends LitElement {
     if (this.killing) {
       return 'text-status-error';
     }
+    if (this.parking) {
+      return 'text-blue-400';
+    }
+    if (this.session.status === 'parked') {
+      return 'text-blue-400';
+    }
     if (this.session.active === false) {
       return 'text-text-muted';
     }
@@ -693,6 +825,12 @@ export class SessionCard extends LitElement {
   private getStatusDotColor(): string {
     if (this.killing) {
       return 'bg-status-error animate-pulse';
+    }
+    if (this.parking) {
+      return 'bg-blue-400 animate-pulse';
+    }
+    if (this.session.status === 'parked') {
+      return 'bg-blue-400';
     }
     if (this.session.active === false) {
       return 'bg-muted';

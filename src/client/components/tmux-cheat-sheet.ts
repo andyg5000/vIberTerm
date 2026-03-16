@@ -51,8 +51,12 @@ export class TmuxCheatSheet extends LitElement {
     return html`
       <div
         class="relative flex-shrink-0"
-        @mouseenter=${() => { this.isHovered = true; }}
-        @mouseleave=${() => { this.isHovered = false; }}
+        @mouseenter=${() => {
+          this.isHovered = true;
+        }}
+        @mouseleave=${() => {
+          this.isHovered = false;
+        }}
       >
         <button
           class="${buttonClasses}"
@@ -60,7 +64,9 @@ export class TmuxCheatSheet extends LitElement {
         >
           ${this.renderTmuxIcon()}
         </button>
-        ${this.isHovered ? html`
+        ${
+          this.isHovered
+            ? html`
           <div
             style="
               position: absolute;
@@ -84,15 +90,19 @@ export class TmuxCheatSheet extends LitElement {
               <strong>tmux Shortcuts</strong>
             </div>
             <div style="margin-top: 0.5em; padding-top: 0.5em; border-top: 1px solid #333;">
-              ${this.getTmuxShortcuts().map(({ key, desc }) => html`
+              ${this.getTmuxShortcuts().map(
+                ({ key, desc }) => html`
                 <div style="display: flex; justify-content: space-between; gap: 1em; margin: 0.25em 0; font-family: monospace;">
                   <span style="font-weight: bold; white-space: nowrap;">${key}</span>
                   <span style="color: #999; text-align: right;">${desc}</span>
                 </div>
-              `)}
+              `
+              )}
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
