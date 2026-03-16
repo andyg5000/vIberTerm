@@ -270,6 +270,27 @@ export class TmuxManager {
       return existingSession.id;
     }
 
+    // If no projectId provided, inherit from a previous session for the same tmux target
+    let projectId = options?.projectId;
+    if (!projectId) {
+      const previousSession = existingSessions.find(
+        (s) =>
+          s.projectId &&
+          s.command[0] === 'tmux' &&
+          s.command[1] === 'attach-session' &&
+          s.command[2] === '-t' &&
+          s.command[3]?.split(':')[0] === sessionName
+      );
+      if (previousSession?.projectId) {
+        projectId = previousSession.projectId;
+        logger.info('Inherited projectId from previous session', {
+          sessionName,
+          projectId,
+          previousSessionId: previousSession.id,
+        });
+      }
+    }
+
     // Create a new VibeTmux session that runs tmux attach
     const sessionOptions: SessionCreateOptions = {
       name: `tmux: ${target}`,
@@ -277,7 +298,7 @@ export class TmuxManager {
       cols: options?.cols || 80,
       rows: options?.rows || 24,
       titleMode: options?.titleMode || TitleMode.STATIC,
-      projectId: options?.projectId,
+      projectId,
     };
 
     const session = await this.ptyManager.createSession(tmuxCommand, sessionOptions);
