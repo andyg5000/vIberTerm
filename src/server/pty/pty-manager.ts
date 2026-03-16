@@ -1629,10 +1629,8 @@ export class PtyManager extends EventEmitter {
     if (isTmux && diskSession?.command?.[3]) {
       const tmuxTarget = diskSession.command[3].split(':')[0];
       try {
-        const { execFile: execFileCb } = await import('child_process');
-        const { promisify: promisifyFn } = await import('util');
-        const execFilePromise = promisifyFn(execFileCb);
-        const { stdout } = await execFilePromise('tmux', [
+        const execFileAsync = promisify(execFile);
+        const { stdout } = await execFileAsync('tmux', [
           'display-message',
           '-t',
           tmuxTarget,
@@ -1866,12 +1864,10 @@ export class PtyManager extends EventEmitter {
     if (isTmux) {
       // Resume as tmux: create a new tmux session with claude --continue
       const tmuxSessionName = `resume-${Date.now()}`;
-      const { execFile: execFileCb } = await import('child_process');
-      const { promisify: promisifyFn } = await import('util');
-      const execFilePromise = promisifyFn(execFileCb);
+      const execFileAsync = promisify(execFile);
 
       // Create tmux session in the parked CWD running claude --continue
-      await execFilePromise('tmux', [
+      await execFileAsync('tmux', [
         'new-session',
         '-d',
         '-s',
