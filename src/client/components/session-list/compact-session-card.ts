@@ -191,15 +191,18 @@ export class CompactSessionCard extends LitElement {
     });
 
     if (result.success) {
-      // Small delay to let server finish creating the new session
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      this.dispatchEvent(
-        new CustomEvent('session-resumed', {
-          detail: { sessionId: this.session.id },
-          bubbles: true,
-          composed: true,
-        })
-      );
+      // Dispatch immediately, then again after delays to catch server state updates
+      const fireRefresh = () =>
+        this.dispatchEvent(
+          new CustomEvent('session-resumed', {
+            detail: { sessionId: this.session.id },
+            bubbles: true,
+            composed: true,
+          })
+        );
+      fireRefresh();
+      setTimeout(fireRefresh, 1000);
+      setTimeout(fireRefresh, 3000);
     }
     this.resuming = false;
   }
