@@ -727,6 +727,21 @@ export class Settings extends LitElement {
     }
   }
 
+  private async handleUpdateProject(projectId: string, updates: Partial<Project>) {
+    const updatedProjects = this.projects.map((p) =>
+      p.id === projectId ? { ...p, ...updates } : p
+    );
+    this.projects = updatedProjects;
+
+    if (this.serverConfigService) {
+      try {
+        await this.serverConfigService.updateConfig({ projects: updatedProjects });
+      } catch (error) {
+        logger.error('Failed to update project:', error);
+      }
+    }
+  }
+
   private async handleDeleteProject(projectId: string) {
     const updatedProjects = this.projects.filter((p) => p.id !== projectId);
     this.projects = updatedProjects;
@@ -791,11 +806,23 @@ export class Settings extends LitElement {
               ${this.projects.map(
                 (project) => html`
                 <div class="flex items-center gap-2 py-1.5 px-2 bg-bg rounded border border-border/50">
-                  <div
-                    class="w-3 h-3 rounded-full flex-shrink-0"
-                    style="background-color: ${project.color || '#6366f1'}"
-                  ></div>
-                  <span class="text-sm text-primary flex-1">${project.name}</span>
+                  <input
+                    type="color"
+                    .value=${project.color || '#6366f1'}
+                    @change=${(e: Event) => this.handleUpdateProject(project.id, { color: (e.target as HTMLInputElement).value })}
+                    class="w-5 h-5 rounded border border-border cursor-pointer flex-shrink-0"
+                    title="Change color"
+                  />
+                  <input
+                    type="text"
+                    .value=${project.name}
+                    @change=${(e: Event) => {
+                      const newName = (e.target as HTMLInputElement).value.trim();
+                      if (newName) this.handleUpdateProject(project.id, { name: newName });
+                    }}
+                    class="text-sm text-primary bg-transparent border-none outline-none flex-1 focus:bg-bg-tertiary focus:px-1 rounded transition-all"
+                    title="Click to rename"
+                  />
                   <button
                     class="text-status-error hover:text-status-error/80 text-xs p-1"
                     @click=${() => this.handleDeleteProject(project.id)}

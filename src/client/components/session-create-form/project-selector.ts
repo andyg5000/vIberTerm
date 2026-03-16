@@ -26,11 +26,27 @@ export class ProjectSelector extends LitElement {
 
   @state() private creatingProject = false;
   @state() private newProjectName = '';
+  @state() private newProjectColor = this.randomColor();
+
+  private randomColor(): string {
+    const colors = [
+      '#6366f1',
+      '#ec4899',
+      '#f59e0b',
+      '#10b981',
+      '#3b82f6',
+      '#8b5cf6',
+      '#ef4444',
+      '#14b8a6',
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  }
 
   private handleChange(e: Event) {
     const select = e.target as HTMLSelectElement;
     if (select.value === NEW_PROJECT_VALUE) {
       this.creatingProject = true;
+      this.newProjectColor = this.randomColor();
       // Reset select to current value
       select.value = this.selectedProjectId || '';
       return;
@@ -52,7 +68,7 @@ export class ProjectSelector extends LitElement {
     const newProject: Project = {
       id: `proj-${Date.now()}`,
       name,
-      color: '#6366f1',
+      color: this.newProjectColor,
     };
 
     // Save to server
@@ -65,8 +81,11 @@ export class ProjectSelector extends LitElement {
       });
 
       if (response.ok) {
+        // Update local projects so the dropdown shows the name immediately
+        this.projects = updatedProjects;
         this.creatingProject = false;
         this.newProjectName = '';
+
         this.dispatchEvent(
           new CustomEvent('project-created', {
             detail: { project: newProject },
@@ -120,6 +139,15 @@ export class ProjectSelector extends LitElement {
           this.creatingProject
             ? html`
               <div class="flex items-center gap-1.5">
+                <input
+                  type="color"
+                  .value=${this.newProjectColor}
+                  @input=${(e: Event) => {
+                    this.newProjectColor = (e.target as HTMLInputElement).value;
+                  }}
+                  class="w-6 h-6 rounded border border-border cursor-pointer flex-shrink-0"
+                  title="Project color"
+                />
                 <input
                   type="text"
                   class="input-field text-xs py-1 px-2 flex-1"
